@@ -86,7 +86,7 @@ visualize_route(points, route, 'Zigzag Route Visualization', penalties, connecti
 kmeans_clustering(points)
 best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=20, generations=50, mutation_rate=0.1,
                                        penalties=penalties)
-
+'''
 # Find points corresponding to the best route
 best_route_points = [points_matrix[i][1] for i in best_route_indices]
 print("Best Route:", best_route_indices)
@@ -97,6 +97,35 @@ for start, end in optimized_connections:
     optimized_route.extend([route[end], points[start], route[end]])
 optimized_route.append(route[-1])
 optimized_route = np.array(optimized_route)
+'''
+def demonstrate_chosen_route(route, points, best_route_indices, connections, title):
+    plt.figure(figsize=(10, 8))
+
+    # Highlight the chosen charging stations.
+    chosen_points = points[best_route_indices]
+    plt.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5, label='Chosen Charging Stations')
+
+    for i, (x, y) in enumerate(chosen_points):
+        plt.text(x + 0.5, y + 0.5, f'{best_route_indices[i]}', fontsize=12, color='black')
+
+    # Plot connections only to the chosen stations
+    chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_route_indices]
+    for start, end in chosen_connections:
+        plt.plot([route[end][0], points[start][0]], [route[end][1], points[start][1]], 'r-', linewidth=2)
+
+    # Plot the route without highlighting non-chosen points
+    plt.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
+    plt.plot(route[:, 0], route[:, 1], 'green', linestyle='dashed', alpha=0.5)
+
+    plt.title(title)
+    plt.xlabel('X Coordinate')
+    plt.ylabel('Y Coordinate')
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+
+demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization')
 
 # Visualize the optimized route
-visualize_route(points, optimized_route, 'Optimized Route Visualization', penalties, optimized_connections)
+# visualize_route(points, optimized_route, 'Optimized Route Visualization', penalties, optimized_connections)
