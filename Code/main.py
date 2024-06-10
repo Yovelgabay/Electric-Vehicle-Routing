@@ -2,7 +2,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
-from Code.GA import genetic_algorithm
+from GA import genetic_algorithm
 from kmeans import kmeans_clustering
 
 
@@ -19,7 +19,10 @@ def generate_zigzag_route(num_points, scale, turn_amplitude, seed):
         dy = turn_amplitude * direction * np.sin(angle)
         waypoints[i] += np.array([dx, dy])
     route = np.vstack([start_point, waypoints, end_point])
-    return route
+
+    distances_between_points = np.linalg.norm(np.diff(route, axis=0), axis=1)
+
+    return route, distances_between_points
 
 
 def generate_random_points_and_penalties(seed, num_points, scale, route):
@@ -29,7 +32,7 @@ def generate_random_points_and_penalties(seed, num_points, scale, route):
     penalties = np.random.uniform(1, 20, num_points)
     intersections = get_intersection_points(route, points)
     station_ids = sort_stations_by_route(intersections)
-    points_with_ids = [(i, points[i]) for i in station_ids]
+    points_with_ids = [(i, points[i], intersections[i][2]) for i in station_ids]  # Include the closest route point
     return points_with_ids, penalties
 
 
@@ -53,7 +56,7 @@ def visualize_route(points, route, title, penalties, connections=[]):
 
 def closest_point(route, point):
     distances = cdist([point], route, 'euclidean')
-    return np.argmin(distances)
+    return np.argmin(distances)  # returns the index of the minimum value in an array.
 
 
 def get_intersection_points(route, points):
@@ -70,8 +73,9 @@ def sort_stations_by_route(intersections):
 
 
 # Generating data
+ev_capacity = 100
 num_route_points = 20
-route = generate_zigzag_route(num_route_points, 100, 10, seed=53)
+route, distances_between_points = generate_zigzag_route(num_route_points, 100, 10, seed=53)
 points_matrix, penalties = generate_random_points_and_penalties(2, 20, 100, route)
 
 # Extract points from points_matrix
@@ -84,26 +88,20 @@ visualize_route(points, route, 'Zigzag Route Visualization', penalties, connecti
 
 # Apply clustering and genetic algorithm
 kmeans_clustering(points)
-best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=20, generations=50, mutation_rate=0.1,
-                                       penalties=penalties)
-'''
-# Find points corresponding to the best route
-best_route_points = [points_matrix[i][1] for i in best_route_indices]
+best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=50, generations=10,
+                                       mutation_rate=0.1,
+                                       penalties=penalties, ev_capacity=ev_capacity,
+                                       route_distances=distances_between_points)
 print("Best Route:", best_route_indices)
-# Find connections for the optimized route
-optimized_connections = [(idx, closest_point(route, pt)) for idx, pt in enumerate(best_route_points)]
-optimized_route = [route[0]]
-for start, end in optimized_connections:
-    optimized_route.extend([route[end], points[start], route[end]])
-optimized_route.append(route[-1])
-optimized_route = np.array(optimized_route)
-'''
+
+
 def demonstrate_chosen_route(route, points, best_route_indices, connections, title):
     plt.figure(figsize=(10, 8))
 
     # Highlight the chosen charging stations.
     chosen_points = points[best_route_indices]
-    plt.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5, label='Chosen Charging Stations')
+    plt.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5,
+                label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_points):
         plt.text(x + 0.5, y + 0.5, f'{best_route_indices[i]}', fontsize=12, color='black')
@@ -126,6 +124,3 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
 
 
 demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization')
-
-# Visualize the optimized route
-# visualize_route(points, optimized_route, 'Optimized Route Visualization', penalties, optimized_connections)
