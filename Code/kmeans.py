@@ -23,8 +23,8 @@ def kmeans_clustering(points):
     # K-Means Clustering
     num_clusters, silhouette_scores = optimal_k_using_silhouette(points, max_k=10)
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(points)
-    labels = kmeans.labels_
-    centroids = kmeans.cluster_centers_
+    #labels = kmeans.labels_
+    #centroids = kmeans.cluster_centers_
 
     # Visualize the clustered points
     # plt.figure(figsize=(8, 6))
