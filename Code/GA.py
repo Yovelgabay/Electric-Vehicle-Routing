@@ -222,3 +222,93 @@ def mutate(route, mutation_rate, points_with_ids):
             route[idx] = new_station
 
     return route
+
+def initialize_population(points_with_ids, population_size):
+    """
+    Initializes a population of routes (chromosomes) for the genetic algorithm.
+
+    Parameters:
+    - points_with_ids (list): List of tuples containing indices, coordinates, and closest route point indices.
+    - population_size (int): Number of chromosomes (routes) to generate.
+
+    Returns:
+    - list: List of lists, where each inner list represents a chromosome (route).
+      Each chromosome is a sorted list of indices representing charging stations along the route.
+    """
+    population = []
+    num_points = len(points_with_ids)
+    for i in range(population_size):
+        num_stops = random.randint(1, num_points)  # Vary the number of stops
+        stops = sorted(random.sample(range(num_points), num_stops))
+        population.append(stops)
+        print(f"Chromosome {i}: {stops}")
+    return population
+
+
+def genetic_algorithm(points_with_ids, route, connections, population_size, generations, mutation_rate, penalties,
+                      ev_capacity, distances_between_points):
+    """
+    Executes a genetic algorithm to optimize the EV route selection based on charging station locations.
+
+    Parameters:
+    - points_with_ids (list): List of tuples containing indices, coordinates, and closest route point indices.
+    - route (ndarray): Array of coordinates representing the route waypoints.
+    - connections (list): List of tuples indicating connections between charging stations and route waypoints.
+    - population_size (int): Number of chromosomes (routes) in each generation.
+    - generations (int): Number of generations (iterations) to run the genetic algorithm.
+    - mutation_rate (float): Probability of mutation for each chromosome during reproduction.
+    - penalties (ndarray): Array of penalties associated with each charging station.
+    - ev_capacity (float): Maximum distance the EV can travel on a single charge.
+    - distances_between_points (ndarray): Distances between consecutive route waypoints.
+
+    Returns:
+    - list: Best route found by the genetic algorithm, represented as a list of indices of charging stations.
+    """
+    print("Initializing population...")
+    population = initialize_population(points_with_ids, population_size)
+    distances_CS = calculate_distances_of_CS(points_with_ids, route)
+    best_route = None
+    best_fitness = float('-inf')
+
+    for generation in range(generations):
+        fitnesses = [
+            fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points) for
+            route in population]
+        print("Generation number: ", generation)
+
+        # Update best route and fitness
+        for i, (route, fitness) in enumerate(zip(population, fitnesses)):
+            if fitness > best_fitness and check_validity(route, connections, distances_CS, ev_capacity,
+                                                         distances_between_points):
+                best_route = copy.deepcopy(route)
+                best_fitness = fitness
+
+        print("Best route + best fitness:", best_route, best_fitness)
+
+        # Select parents, perform crossover and mutation
+        selected_parents = tournament_selection(population, fitnesses, tournament_size=3)
+        print("Selected parents:", selected_parents)
+        new_population = []
+        i = 1
+        while len(new_population) < population_size - 2:
+            parent1 = selected_parents[i % len(selected_parents)]
+            parent2 = selected_parents[(i + 1) % len(selected_parents)]
+            i += 2
+            child1, child2 = crossover(parent1, parent2)
+            new_population.append(mutate(child1, mutation_rate, points_with_ids))
+            new_population.append(mutate(child2, mutation_rate, points_with_ids))
+
+        print("Best route + best fitness after copying:", best_route, best_fitness)
+        new_population.append(copy.deepcopy(best_route))  # Append a copy of the best route to the new population
+        print("Best route added to new population:", best_route)
+        population = new_population
+
+        # Evaluate fitness of the new population
+        fitnesses = [
+            fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points) for
+            route in population]
+        for i, (route, fitness) in enumerate(zip(population, fitnesses)):
+            validity = check_validity(route, connections, distances_CS, ev_capacity, distances_between_points)
+            print(f"Chromosome {i}: {route} with fitness {fitness} and validity {validity}")
+
+    return best_route
