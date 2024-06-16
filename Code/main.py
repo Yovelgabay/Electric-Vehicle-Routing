@@ -88,10 +88,10 @@ visualize_route(points, route, 'Zigzag Route Visualization', penalties, connecti
 
 # Apply clustering and genetic algorithm
 kmeans_clustering(points)
-best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=50, generations=10,
-                                       mutation_rate=0.1,
+best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=100, generations=50,
+                                       mutation_rate=0.3,
                                        penalties=penalties, ev_capacity=ev_capacity,
-                                       route_distances=distances_between_points)
+                                       distances_between_points = distances_between_points)
 print("Best Route:", best_route_indices)
 
 
