@@ -1,5 +1,7 @@
 import numpy as np
 import random
+import copy
+
 from scipy.spatial.distance import cdist
 
 
@@ -12,7 +14,7 @@ def point_to_segment_distance(px, py, x1, y1, x2, y2):
     return np.hypot(px - closest_x, py - closest_y)
 
 
-def calculate_distances(points_with_ids, route):
+def calculate_distances_of_CS(points_with_ids, route):
     distances = np.zeros((len(points_with_ids), len(route) - 1))
     for i, (_, (px, py), _) in enumerate(points_with_ids):  # Unpack the point
         for j in range(len(route) - 1):
@@ -80,14 +82,27 @@ def fitness_function(chromosome, connections, distances, penalties, ev_capacity,
 
     total_distance = sum(distances[stop] for stop in chromosome)
     total_penalty = sum(penalties[stop] for stop in chromosome)
+    stop_penalty = len(chromosome)
+    return 1 / (total_distance + total_penalty + stop_penalty) if total_distance + total_penalty + stop_penalty > 0 else 0.000000000001
 
-    return 1 / (total_distance + total_penalty) if total_distance + total_penalty > 0 else 0.000000000001
 
+def tournament_selection(population, fitnesses, tournament_size=2):
+    selected_parents = []
+    indices = list(range(len(population)))
 
-def selection(population, fitnesses):
-    total_fitness = sum(fitnesses)
-    probabilities = [f / total_fitness for f in fitnesses]
-    return population[np.random.choice(len(population), p=probabilities)]
+    while indices:
+        # Randomly select a tournament group
+        tournament_indices = random.sample(indices, min(tournament_size, len(indices)))
+        tournament_fitnesses = [fitnesses[idx] for idx in tournament_indices]
+
+        # Select the best individual from the tournament
+        winner_idx = tournament_indices[np.argmax(tournament_fitnesses)]
+        selected_parents.append(population[winner_idx])
+
+        # Remove the selected individual from the pool to avoid duplication
+        indices.remove(winner_idx)
+
+    return selected_parents
 
 
 def crossover(parent1, parent2):
@@ -157,39 +172,57 @@ def initialize_population(points_with_ids, population_size):
     return population
 
 
-def genetic_algorithm(points_with_ids, route, connections, population_size, generations, mutation_rate, penalties, ev_capacity, route_distances):
+import copy
+
+
+def genetic_algorithm(points_with_ids, route, connections, population_size, generations, mutation_rate, penalties,
+                      ev_capacity, distances_between_points):
     print("initial population")
     population = initialize_population(points_with_ids, population_size)
-    distances = calculate_distances(points_with_ids, route)
+    distances_CS = calculate_distances_of_CS(points_with_ids, route)
     best_route = None
     best_fitness = float('-inf')
 
     for generation in range(generations):
-        fitnesses = [fitness_function(route, connections, distances, penalties, ev_capacity, route_distances) for route in population]
-        new_population = []
+        fitnesses = [
+            fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points) for
+            route in population]
         print("Generation number: ", generation)
 
-        # Add the best route from the previous generation to the new population
-        if best_route is not None:
-            new_population.append(best_route)
+        # Update best route and fitness
+        for i, (route, fitness) in enumerate(zip(population, fitnesses)):
+            if fitness > best_fitness and check_validity(route, connections, distances_CS, ev_capacity,
+                                                         distances_between_points):
+                best_route = copy.deepcopy(route)
+                best_fitness = fitness
+
+        print("best_route + best_fitness 1", best_route, best_fitness)
 
         # Select parents, perform crossover and mutation
-        for _ in range(population_size // 2 - 1):  # Minus 1 for the best route from the previous generation
-            parent1 = selection(population, fitnesses)
-            parent2 = selection(population, fitnesses)
+        selected_parents = tournament_selection(population, fitnesses, tournament_size=3)
+        print("selected_parents", selected_parents)
+        new_population = []
+        i = 1
+        while len(new_population) < population_size - 2:
+            parent1 = selected_parents[i % len(selected_parents)]
+            parent2 = selected_parents[(i + 1) % len(selected_parents)]
+            i += 2
             child1, child2 = crossover(parent1, parent2)
-            child1 = mutate(child1, mutation_rate, points_with_ids)
-            child2 = mutate(child2, mutation_rate, points_with_ids)
-            new_population.extend([child1, child2])
+            new_population.append(mutate(child1, mutation_rate, points_with_ids))
+            new_population.append(mutate(child2, mutation_rate, points_with_ids))
 
+        print("best_route + best_fitness copy", best_route, best_fitness)
+        new_population.append(copy.deepcopy(best_route))  # Append a copy of the best route to the new population
+        print(best_route, "added to new_population")
         population = new_population
-        print(population)
 
         # Evaluate fitness of the new population
-        fitnesses = [fitness_function(route, connections, distances, penalties, ev_capacity, route_distances) for route in population]
-        best_route_index = np.argmax(fitnesses)
-        if fitnesses[best_route_index] > best_fitness:
-            best_fitness = fitnesses[best_route_index]
-            best_route = population[best_route_index]
+        fitnesses = [
+            fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points) for
+            route in population]
+        for i, (route, fitness) in enumerate(zip(population, fitnesses)):
+            validity = check_validity(route, connections, distances_CS, ev_capacity, distances_between_points)
+            print(f"chromosome {i}: {route} with fitness {fitness} and validity {validity}")
 
     return best_route
+
