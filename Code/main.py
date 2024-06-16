@@ -36,12 +36,18 @@ def generate_random_points_and_penalties(seed, num_points, scale, route):
     return points_with_ids, penalties
 
 
-def visualize_route(points, route, title, penalties, connections=[]):
+def visualize_route(points, route, title, penalties, connections=[], distances=[]):
     plt.figure(figsize=(10, 8))
     plt.plot(route[:, 0], route[:, 1], 'r-o', label='Route')
     plt.scatter(points[:, 0], points[:, 1], color='blue', label='Charging Stations')
     for i, (x, y) in enumerate(points):
         plt.text(x + 0.5, y + 0.5, f'{i}', fontsize=12, color='green')
+
+    for i in range(len(route) - 1):
+        mid_x = (route[i, 0] + route[i + 1, 0]) / 2
+        mid_y = (route[i, 1] + route[i + 1, 1]) / 2
+        plt.text(mid_x, mid_y, f'{distances[i]:.2f}', fontsize=10, color='black')
+
     for start, end in connections:
         plt.plot([points[start][0], route[end][0]], [points[start][1], route[end][1]], 'k--')
         plt.text((points[start][0] + route[end][0]) / 2, (points[start][1] + route[end][1]) / 2, f'{start},{end}',
@@ -84,18 +90,18 @@ points = np.array([point[1] for point in points_matrix])
 # Visualize initial setup
 intersections = get_intersection_points(route, points)
 connections = [(idx, closest_point(route, pt)) for idx, pt, _ in intersections]
-visualize_route(points, route, 'Zigzag Route Visualization', penalties, connections)
+visualize_route(points, route, 'Zigzag Route Visualization', penalties, connections, distances_between_points)
 
 # Apply clustering and genetic algorithm
 kmeans_clustering(points)
 best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=100, generations=50,
                                        mutation_rate=0.3,
                                        penalties=penalties, ev_capacity=ev_capacity,
-                                       distances_between_points = distances_between_points)
+                                       distances_between_points=distances_between_points)
 print("Best Route:", best_route_indices)
 
 
-def demonstrate_chosen_route(route, points, best_route_indices, connections, title):
+def demonstrate_chosen_route(route, points, best_route_indices, connections, title, distances):
     plt.figure(figsize=(10, 8))
 
     # Highlight the chosen charging stations.
@@ -104,16 +110,25 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
                 label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_points):
-        plt.text(x + 0.5, y + 0.5, f'{best_route_indices[i]}', fontsize=12, color='black')
+        plt.text(x + 0.5, y + 0.5, f'{best_route_indices[i]}', fontsize=12, color='gold')
 
     # Plot connections only to the chosen stations
     chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_route_indices]
     for start, end in chosen_connections:
         plt.plot([route[end][0], points[start][0]], [route[end][1], points[start][1]], 'r-', linewidth=2)
+        mid_x = (route[end][0] + points[start][0]) / 2
+        mid_y = (route[end][1] + points[start][1]) / 2
+        segment_length = np.linalg.norm(route[end] - points[start])
+        plt.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
 
-    # Plot the route without highlighting non-chosen points
+    # Plot the entire route and annotate all segment lengths
     plt.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
     plt.plot(route[:, 0], route[:, 1], 'green', linestyle='dashed', alpha=0.5)
+
+    for i in range(len(route) - 1):
+        mid_x = (route[i, 0] + route[i + 1, 0]) / 2
+        mid_y = (route[i, 1] + route[i + 1, 1]) / 2
+        plt.text(mid_x, mid_y, f'{distances[i]:.2f}', fontsize=10, color='black')
 
     plt.title(title)
     plt.xlabel('X Coordinate')
@@ -123,4 +138,4 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
     plt.show()
 
 
-demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization')
+demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization', distances_between_points)
