@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
 from GA import genetic_algorithm
 from kmeans import kmeans_clustering
+from parameters import *
+
 
 def generate_zigzag_route(num_points, scale, turn_amplitude, seed):
     """
@@ -36,6 +38,7 @@ def generate_zigzag_route(num_points, scale, turn_amplitude, seed):
 
     return route, distances_between_points
 
+
 def generate_random_points_and_penalties(seed, num_points, scale, route):
     """
     Generates random points and penalties.
@@ -58,6 +61,7 @@ def generate_random_points_and_penalties(seed, num_points, scale, route):
     station_ids = sort_stations_by_route(intersections)
     points_with_ids = [(i, points[i], intersections[i][2]) for i in station_ids]
     return points_with_ids, penalties
+
 
 def visualize_route(points, route, title, penalties, connections=[], distances=[]):
     """
@@ -96,6 +100,7 @@ def visualize_route(points, route, title, penalties, connections=[], distances=[
     plt.legend()
     plt.show()
 
+
 def closest_point(route, point):
     """
     Finds the closest point on the route to the given point.
@@ -109,6 +114,7 @@ def closest_point(route, point):
     """
     distances = cdist([point], route, 'euclidean')
     return np.argmin(distances)
+
 
 def get_intersection_points(route, points):
     """
@@ -127,6 +133,7 @@ def get_intersection_points(route, points):
         intersections.append((idx, point, closest_idx))
     return intersections
 
+
 def sort_stations_by_route(intersections):
     """
     Sorts stations based on their proximity to the route.
@@ -140,9 +147,10 @@ def sort_stations_by_route(intersections):
     intersections.sort(key=lambda x: x[2])
     return [x[0] for x in intersections]
 
+
+ev_capacity = EV_CAPACITY
 # Generating data
-ev_capacity = 100
-num_route_points = 20
+num_route_points = NUM_ROUTE_POINTS
 route, distances_between_points = generate_zigzag_route(num_route_points, 100, 10, seed=53)
 points_matrix, penalties = generate_random_points_and_penalties(13, 20, 100, route)
 
@@ -156,11 +164,12 @@ visualize_route(points, route, 'Zigzag Route Visualization', penalties, connecti
 
 # Apply clustering and genetic algorithm
 kmeans_clustering(points)
-best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=100, generations=50,
-                                       mutation_rate=0.1,
+best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=POPULATION_SIZE,
+                                       generations=GENERATIONS, mutation_rate=MUTATION_RATE,
                                        penalties=penalties, ev_capacity=ev_capacity,
                                        distances_between_points=distances_between_points)
 print("Best Route:", best_route_indices)
+
 
 def demonstrate_chosen_route(route, points, best_route_indices, connections, title, distances):
     """
@@ -212,4 +221,6 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
     plt.legend()
     plt.show()
 
-demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization', distances_between_points)
+
+demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization',
+                         distances_between_points)
