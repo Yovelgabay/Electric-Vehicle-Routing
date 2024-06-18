@@ -19,7 +19,6 @@ def generate_zigzag_route(num_points, scale, turn_amplitude, seed):
 
     Returns:
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
-    - distances_between_points (np.ndarray): Distances between consecutive points on the route.
     """
     np.random.seed(seed)
     random.seed(seed)
@@ -34,9 +33,21 @@ def generate_zigzag_route(num_points, scale, turn_amplitude, seed):
         waypoints[i] += np.array([dx, dy])
     route = np.vstack([start_point, waypoints, end_point])
 
-    distances_between_points = np.linalg.norm(np.diff(route, axis=0), axis=1)
+    return route
 
-    return route, distances_between_points
+
+def calculate_distances_between_points(route):
+    """
+    Calculates distances between consecutive points on the route.
+
+    Parameters:
+    - route (np.ndarray): Array of (x, y) coordinates defining the route.
+
+    Returns:
+    - distances_between_points (np.ndarray): Distances between consecutive points on the route.
+    """
+    distances_between_points = np.linalg.norm(np.diff(route, axis=0), axis=1)
+    return distances_between_points
 
 
 def generate_random_points_and_penalties(seed, num_points, scale, route):
@@ -151,7 +162,8 @@ def sort_stations_by_route(intersections):
 ev_capacity = EV_CAPACITY
 # Generating data
 num_route_points = NUM_ROUTE_POINTS
-route, distances_between_points = generate_zigzag_route(num_route_points, 100, 10, seed=53)
+route = generate_zigzag_route(num_route_points, 100, 10, seed=53)
+distances_between_points = calculate_distances_between_points(route)
 points_matrix, penalties = generate_random_points_and_penalties(13, 20, 100, route)
 
 # Extract points from points_matrix

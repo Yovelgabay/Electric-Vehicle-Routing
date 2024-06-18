@@ -120,9 +120,11 @@ def fitness_function(chromosome, connections, distances, penalties, ev_capacity,
         return 0.0000000001  # Return a small fitness if the chromosome is not valid
 
     total_distance = sum(distances[stop] for stop in chromosome)
-    total_penalty = sum(penalties[stop] for stop in chromosome)
-    stop_penalty = len(chromosome)
-    return 1 / (total_distance + total_penalty + stop_penalty) if total_distance + total_penalty + stop_penalty > 0 else 0.000000000001
+    # total_penalty = sum(penalties[stop] for stop in chromosome)
+    total_penalty = 0
+    stop_penalty = len(chromosome) * 5  # each stop added 5 km to the total_distance
+    return 1 / (total_distance + total_penalty + stop_penalty) \
+        if total_distance + total_penalty + stop_penalty > 0 else 0.000000000001
 
 
 def tournament_selection(population, fitnesses, tournament_size=2):
@@ -222,6 +224,7 @@ def mutate(route, mutation_rate, points_with_ids):
             route[idx] = new_station
 
     return route
+
 
 def initialize_population(points_with_ids, population_size):
     """
