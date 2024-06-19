@@ -164,7 +164,7 @@ ev_capacity = EV_CAPACITY
 num_route_points = NUM_ROUTE_POINTS
 route = generate_zigzag_route(num_route_points, 100, 10, seed=53)
 distances_between_points = calculate_distances_between_points(route)
-points_matrix, penalties = generate_random_points_and_penalties(13, 20, 100, route)
+points_matrix, penalties = generate_random_points_and_penalties(13, 100, 100, route)
 
 # Extract points from points_matrix
 points = np.array([point[1] for point in points_matrix])
