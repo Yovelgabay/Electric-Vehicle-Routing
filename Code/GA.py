@@ -179,14 +179,14 @@ def fitness_function(chromosome, connections, distances, penalties, ev_capacity,
     """
     exceeded_km = 0
     if not check_validity(chromosome, connections, distances, ev_capacity, route_distances):
-        exceeded_km = 5 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
+        exceeded_km = 50 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
                                                         route_distances)
-        print(f"Exceeded chromoseme: {chromosome}, {exceeded_km}", )
+        print(f"Exceeded chromosome: {chromosome}, {exceeded_km}", )
 
     total_distance = sum(distances[stop] for stop in chromosome)
     # total_penalty = sum(penalties[stop] for stop in chromosome)
     total_penalty = 0
-    stop_penalty = len(chromosome) * 5  # each stop added X km to the total_distance
+    stop_penalty = len(chromosome) * 50  # each stop added X km to the total_distance
     return 1 / (total_distance + total_penalty + stop_penalty + exceeded_km) \
         if total_distance + total_penalty + stop_penalty + exceeded_km > 0 else 0.000000000001
 
@@ -347,8 +347,7 @@ def genetic_algorithm(points_with_ids, route, connections, population_size, gene
 
         # Update best route and fitness
         for i, (route, fitness) in enumerate(zip(population, fitnesses)):
-            if fitness > best_fitness and check_validity(route, connections, distances_CS, ev_capacity,
-                                                         distances_between_points):
+            if fitness > best_fitness:
                 best_route = copy.deepcopy(route)
                 best_fitness = fitness
 
@@ -366,10 +365,11 @@ def genetic_algorithm(points_with_ids, route, connections, population_size, gene
             new_population.append(mutate(child1, mutation_rate, points_with_ids))
             new_population.append(mutate(child2, mutation_rate, points_with_ids))
 
+        '''
         print("Best route + best fitness after copying:", best_route, best_fitness)
         new_population.append(copy.deepcopy(best_route))  # Append a copy of the best route to the new population
         print("Best route added to new population:", best_route)
-
+        '''
         population = new_population
 
         # Evaluate fitness of the new population
