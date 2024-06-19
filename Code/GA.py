@@ -5,47 +5,63 @@ import copy
 from scipy.spatial.distance import cdist
 
 
-def point_to_segment_distance(px, py, x1, y1, x2, y2):
+def point_to_point_distance(px, py, qx, qy):
     """
-    Calculates the shortest distance from a point (px, py) to a line segment defined by (x1, y1) and (x2, y2).
+    Calculates the distance between two points (px, py) and (qx, qy).
+
+    Parameters:
+    - px (float): X-coordinate of the first point.
+    - py (float): Y-coordinate of the first point.
+    - qx (float): X-coordinate of the second point.
+    - qy (float): Y-coordinate of the second point.
+
+    Returns:
+    - distance (float): The Euclidean distance between the two points.
+    """
+    return np.hypot(px - qx, py - qy)
+
+
+def point_to_closest_point_distance(px, py, route):
+    """
+    Calculates the shortest distance from a point (px, py) to the closest point on the route.
 
     Parameters:
     - px (float): X-coordinate of the point.
     - py (float): Y-coordinate of the point.
-    - x1 (float): X-coordinate of the start of the line segment.
-    - y1 (float): Y-coordinate of the start of the line segment.
-    - x2 (float): X-coordinate of the end of the line segment.
-    - y2 (float): Y-coordinate of the end of the line segment.
+    - route (np.ndarray): Array of route waypoints with shape (n, 2), where each row is [x, y].
 
     Returns:
-    - distance (float): The shortest distance from the point to the segment.
+    - min_distance (float): The shortest distance from the point to the closest point on the route.
     """
-    dx, dy = x2 - x1, y2 - y1
-    if dx == dy == 0:
-        return np.hypot(px - x1, py - y1)
-    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
-    closest_x, closest_y = x1 + t * dx, y1 + t * dy
-    return np.hypot(px - closest_x, py - closest_y)
+    min_distance = float('inf')
+    for (rx, ry) in route:
+        distance = np.hypot(px - rx, py - ry)
+        if distance < min_distance:
+            min_distance = distance
+    return min_distance
 
 
 def calculate_distances_of_CS(points_with_ids, route):
     """
-    Calculates the minimum distance from each charging station to the nearest segment of the route.
+    Calculates the minimum distance from each charging station to the nearest point on the route.
 
     Parameters:
     - points_with_ids (list): List of tuples (index, coordinates, closest route segment index) for each charging station.
     - route (np.ndarray): Array of route waypoints.
 
     Returns:
-    - min_distances (np.ndarray): Array of the shortest distances from each charging station to the route.
+    - min_distances (np.ndarray): Array of the shortest distances from each charging station to the closest point on the route.
     """
-    distances = np.zeros((len(points_with_ids), len(route) - 1))
+    num_points = len(points_with_ids)
+    num_route_points = len(route)
+    min_distances = np.zeros(num_points)
+
     for i, (_, (px, py), _) in enumerate(points_with_ids):
-        for j in range(len(route) - 1):
-            x1, y1 = route[j]
-            x2, y2 = route[j + 1]
-            distances[i, j] = point_to_segment_distance(px, py, x1, y1, x2, y2)
-    min_distances = distances.min(axis=1)
+        distances = np.zeros(num_route_points)
+        for j, (qx, qy) in enumerate(route):
+            distances[j] = point_to_point_distance(px, py, qx, qy)
+        min_distances[i] = distances.min()
+
     return min_distances
 
 
@@ -100,6 +116,51 @@ def check_validity(chromosome, connections, distances, ev_capacity, route_distan
     return True
 
 
+def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, route_distances):
+    """
+    Calculates how many kilometers the given route exceeded the EV capacity in total.
+
+    Parameters:
+    - route (list): List of indices representing the route of the EV through charging stations.
+    - connections (list): List of tuples defining connections between points and route segments.
+    - distances (np.ndarray): Array of distances from charging stations to the route.
+    - ev_capacity (float): Maximum distance the EV can travel on a single charge.
+    - route_distances (list): List of distances between consecutive waypoints on the route.
+
+    Returns:
+    - total_excess_km (float): The total kilometers by which the route exceeded the EV capacity.
+    """
+    total_excess_km = 0
+
+    # Calculate the distance from the start point to the first charging station
+    start_to_first = sum(route_distances[:connections[route[0]][1]]) + distances[route[0]]
+    if start_to_first > ev_capacity:
+        total_excess_km += start_to_first - ev_capacity
+
+    # Calculate distances between consecutive charging stations
+    for i in range(len(route) - 1):
+        start_station = route[i]
+        end_station = route[i + 1]
+
+        dist_to_route = distances[start_station]
+        route_distance = sum(route_distances[connections[start_station][1]:connections[end_station][1]])
+        dist_from_route = distances[end_station]
+
+        segment_distance = dist_to_route + route_distance + dist_from_route
+
+        if segment_distance > ev_capacity:
+            total_excess_km += segment_distance - ev_capacity
+
+    # Calculate the distance from the last charging station to the destination
+    last_station_idx = route[-1]
+    route_to_end = sum(route_distances[connections[last_station_idx][1]:])
+    last_to_end = route_to_end + distances[last_station_idx]
+    if last_to_end > ev_capacity:
+        total_excess_km += last_to_end - ev_capacity
+
+    return total_excess_km
+
+
 def fitness_function(chromosome, connections, distances, penalties, ev_capacity, route_distances):
     """
     Evaluates the fitness of a given route (chromosome) by considering the total distance, penalties, and the number
@@ -116,20 +177,23 @@ def fitness_function(chromosome, connections, distances, penalties, ev_capacity,
     Returns:
     - fitness (float): Fitness value of the route, higher values are better.
     """
+    exceeded_km = 0
     if not check_validity(chromosome, connections, distances, ev_capacity, route_distances):
-        return 0.0000000001  # Return a small fitness if the chromosome is not valid
+        exceeded_km = 5 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
+                                                        route_distances)
+        print(f"Exceeded chromoseme: {chromosome}, {exceeded_km}", )
 
     total_distance = sum(distances[stop] for stop in chromosome)
     # total_penalty = sum(penalties[stop] for stop in chromosome)
     total_penalty = 0
-    stop_penalty = len(chromosome) * 5  # each stop added 5 km to the total_distance
-    return 1 / (total_distance + total_penalty + stop_penalty) \
-        if total_distance + total_penalty + stop_penalty > 0 else 0.000000000001
+    stop_penalty = len(chromosome) * 5  # each stop added X km to the total_distance
+    return 1 / (total_distance + total_penalty + stop_penalty + exceeded_km) \
+        if total_distance + total_penalty + stop_penalty + exceeded_km > 0 else 0.000000000001
 
 
-def tournament_selection(population, fitnesses, tournament_size=2):
+def tournament_selection(population, fitnesses, tournament_size):
     """
-    Selects parents for crossover based on a tournament selection method.
+    Selects one parent for crossover based on a tournament selection method.
 
     Parameters:
     - population (list): List of routes (chromosomes) in the current generation.
@@ -137,21 +201,23 @@ def tournament_selection(population, fitnesses, tournament_size=2):
     - tournament_size (int): Size of the tournament group for selection.
 
     Returns:
-    - selected_parents (list): List of selected parent routes for crossover.
+    - selected_parent (list): The selected parent route for crossover.
     """
-    selected_parents = []
     indices = list(range(len(population)))
 
-    while indices:
-        tournament_indices = random.sample(indices, min(tournament_size, len(indices)))
-        tournament_fitnesses = [fitnesses[idx] for idx in tournament_indices]
+    # Randomly select indices for the tournament
+    tournament_indices = random.sample(indices, min(tournament_size, len(indices)))
 
-        winner_idx = tournament_indices[np.argmax(tournament_fitnesses)]
-        selected_parents.append(population[winner_idx])
+    # Get the fitness values for the selected indices
+    tournament_fitnesses = [fitnesses[idx] for idx in tournament_indices]
 
-        indices.remove(winner_idx)
+    # Determine the index of the winner (highest fitness)
+    winner_idx = tournament_indices[np.argmax(tournament_fitnesses)]
 
-    return selected_parents
+    # Select the corresponding parent from the population
+    selected_parent = population[winner_idx]
+
+    return selected_parent
 
 
 def crossover(parent1, parent2):
@@ -289,14 +355,13 @@ def genetic_algorithm(points_with_ids, route, connections, population_size, gene
         print("Best route + best fitness:", best_route, best_fitness)
 
         # Select parents, perform crossover and mutation
-        selected_parents = tournament_selection(population, fitnesses, tournament_size=3)
-        print("Selected parents:", selected_parents)
         new_population = []
-        i = 1
         while len(new_population) < population_size - 2:
-            parent1 = selected_parents[i % len(selected_parents)]
-            parent2 = selected_parents[(i + 1) % len(selected_parents)]
-            i += 2
+            parent1 = tournament_selection(population, fitnesses, tournament_size=4)
+            parent2 = tournament_selection(population, fitnesses, tournament_size=4)
+
+            print("Selected parents:", parent1, parent2)
+
             child1, child2 = crossover(parent1, parent2)
             new_population.append(mutate(child1, mutation_rate, points_with_ids))
             new_population.append(mutate(child2, mutation_rate, points_with_ids))
@@ -304,6 +369,7 @@ def genetic_algorithm(points_with_ids, route, connections, population_size, gene
         print("Best route + best fitness after copying:", best_route, best_fitness)
         new_population.append(copy.deepcopy(best_route))  # Append a copy of the best route to the new population
         print("Best route added to new population:", best_route)
+
         population = new_population
 
         # Evaluate fitness of the new population
