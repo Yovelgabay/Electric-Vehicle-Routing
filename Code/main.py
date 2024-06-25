@@ -1,7 +1,4 @@
 import numpy as np
-import random
-import matplotlib.pyplot as plt
-from scipy.spatial.distance import cdist
 from Code.functions import assign_route_points_to_centroids, generate_zigzag_route, calculate_distances_between_points, \
     generate_random_points_and_penalties, get_intersection_points, closest_point
 from visualization import demonstrate_chosen_route, plot_centroids_and_route, visualize_route
@@ -34,7 +31,7 @@ plot_centroids_and_route(centroids, route, assigned_points)
 best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=POPULATION_SIZE,
                                        generations=GENERATIONS, mutation_rate=MUTATION_RATE,
                                        penalties=penalties, ev_capacity=ev_capacity,
-                                       distances_between_points=distances_between_points)
+                                       distances_between_points=distances_between_points, max_stagnation=MAX_STAGNATION)
 print("Best Route:", best_route_indices)
 
 demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization',
