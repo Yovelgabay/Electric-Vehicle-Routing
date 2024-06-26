@@ -28,10 +28,16 @@ assigned_points = assign_route_points_to_centroids(centroids, route)
 
 plot_centroids_and_route(centroids, route, assigned_points)
 
+# Define starting point and determine its cluster
+starting_point_index = 0  # Specify your starting point index
+starting_point_cluster = labels[starting_point_index]
+
+# Run the genetic algorithm
 best_route_indices = genetic_algorithm(points_matrix, route, connections, population_size=POPULATION_SIZE,
                                        generations=GENERATIONS, mutation_rate=MUTATION_RATE,
                                        penalties=penalties, ev_capacity=ev_capacity,
-                                       distances_between_points=distances_between_points, max_stagnation=MAX_STAGNATION)
+                                       distances_between_points=distances_between_points, max_stagnation=MAX_STAGNATION,
+                                       labels=labels, starting_point_cluster=starting_point_cluster)
 print("Best Route:", best_route_indices)
 
 demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization',
