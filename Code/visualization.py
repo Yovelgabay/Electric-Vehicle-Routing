@@ -1,7 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.spatial.distance import cdist
-
+import matplotlib.cm as cm
+from matplotlib.colors import Normalize
 
 def plot_centroids_and_route(centroids, route, closest_centroids):
     """
@@ -38,9 +39,9 @@ def plot_centroids_and_route(centroids, route, closest_centroids):
     plt.show()
 
 
-def visualize_route(points, route, title, penalties, connections=[], distances=[]):
+def visualize_route(points, route, title, penalties, connections=None, distances=None):
     """
-    Visualizes the route and charging stations.
+    Visualizes the route and charging stations with penalties color mapping.
 
     Parameters:
     - points (np.ndarray): Array of (x, y) coordinates of the points.
@@ -53,41 +54,50 @@ def visualize_route(points, route, title, penalties, connections=[], distances=[
     Displays:
     - A plot showing the route, points, penalties, and connections.
     """
+    if distances is None:
+        distances = []
+    if connections is None:
+        connections = []
+
     plt.figure(figsize=(10, 8))
+
+    # Plot the route
     plt.plot(route[:, 0], route[:, 1], 'r-o', label='Route')
-    plt.scatter(points[:, 0], points[:, 1], color='blue', label='Charging Stations')
+
+    # Normalize penalties for color mapping
+    norm = Normalize(penalties.min(), penalties.max())
+    cmap = cm.get_cmap('viridis')
+    sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+
+    # Scatter points with color mapped based on penalties
+    sc = plt.scatter(points[:, 0], points[:, 1], c=penalties, cmap=cmap, norm=norm, label='Charging Stations',
+                     edgecolor='black')
+
+    # Add colorbar to indicate penalty scale
+    cbar = plt.colorbar(sm)
+    cbar.set_label('Penalties')
+
+    # Annotate each point
     for i, (x, y) in enumerate(points):
-        plt.text(x + 0.5, y + 0.5, f'{i}', fontsize=12, color='green')
+        plt.text(x + 0.5, y + 0.5, f'{i}', fontsize=12, color='black')
 
-    for i in range(len(route) - 1):
-        mid_x = (route[i, 0] + route[i + 1, 0]) / 2
-        mid_y = (route[i, 1] + route[i + 1, 1]) / 2
-        plt.text(mid_x, mid_y, f'{distances[i]:.2f}', fontsize=10, color='black')
+    # Annotate distances between route points if distances are provided
+    if len(distances) > 0:
+        for i in range(len(route) - 1):
+            mid_x = (route[i, 0] + route[i + 1, 0]) / 2
+            mid_y = (route[i, 1] + route[i + 1, 1]) / 2
+            plt.text(mid_x, mid_y, f'{distances[i]:.2f}', fontsize=10, color='black')
 
+    # Plot connections
     for start, end in connections:
         plt.plot([points[start][0], route[end][0]], [points[start][1], route[end][1]], 'k--')
-        plt.text((points[start][0] + route[end][0]) / 2, (points[start][1] + route[end][1]) / 2, f'{start},{end}',
-                 fontsize=8, color='purple')
+
     plt.title(title)
     plt.xlabel('X Coordinate')
     plt.ylabel('Y Coordinate')
     plt.grid(True)
     plt.legend()
     plt.show()
-
-    def closest_point(route, point):
-        """
-        Finds the closest point on the route to the given point.
-
-        Parameters:
-        - route (np.ndarray): Array of (x, y) coordinates defining the route.
-        - point (np.ndarray): Coordinates of the point to find the closest route point for.
-
-        Returns:
-        - int: Index of the closest point on the route.
-        """
-        distances = cdist([point], route, 'euclidean')
-        return np.argmin(distances)
 
 
 def closest_point(route, point):

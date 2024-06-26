@@ -2,6 +2,9 @@ import numpy as np
 import random
 import copy
 
+from Code.parameters import AVERAGE_WAITING_TIME
+
+
 def point_to_point_distance(px, py, qx, qy):
     return np.hypot(px - qx, py - qy)
 
@@ -89,17 +92,19 @@ def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, ro
     return total_excess_km
 
 
-def fitness_function(chromosome, connections, distances, penalties, ev_capacity, route_distances):
+def fitness_function(chromosome, connections, distances, penalties, ev_capacity, route_distances, labels,
+                     starting_point_cluster):
     exceeded_km = 0
     if not check_validity(chromosome, connections, distances, ev_capacity, route_distances):
         exceeded_km = 70 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
-                                                        route_distances)
-        #print(f"Exceeded chromosome: {chromosome}, {exceeded_km}", )
+                                                         route_distances)
 
     total_distance = sum(distances[stop] for stop in chromosome)
-    # total_penalty = sum(penalties[stop] for stop in chromosome)
-    total_penalty = 0
-    stop_penalty = len(chromosome) * 50  # each stop added X km to the total_distance
+    total_penalty = sum(
+        penalties[stop] if labels[stop] == starting_point_cluster else AVERAGE_WAITING_TIME
+        for stop in chromosome
+    )
+    stop_penalty = len(chromosome) * 10
     return 1 / (total_distance + total_penalty + stop_penalty + exceeded_km) \
         if total_distance + total_penalty + stop_penalty + exceeded_km > 0 else 0.000000000001
 
@@ -183,29 +188,30 @@ def mutate(route, mutation_rate, points_with_ids):
 
 
 def initialize_population(points_with_ids, population_size):
-     """Create a population of chromosomes"""
-     population = []
-     num_points = len(points_with_ids)
+    """Create a population of chromosomes"""
+    population = []
+    num_points = len(points_with_ids)
 
-     # Add a chromosome with the shortest valid path (at least one intermediate stop)
-     if num_points > 0:
-         shortest_path_chromosome = [random.choice(range(num_points))]
-         population.append(shortest_path_chromosome)
-         print(f"Shortest path chromosome: {shortest_path_chromosome}")
+    # Add a chromosome with the shortest valid path (at least one intermediate stop)
+    if num_points > 0:
+        shortest_path_chromosome = [random.choice(range(num_points))]
+        population.append(shortest_path_chromosome)
+        print(f"Shortest path chromosome: {shortest_path_chromosome}")
 
-     # Add a chromosome with the longest path (going through all charging stations)
-     longest_path_chromosome = list(range(num_points))
-     population.append(longest_path_chromosome)
-     print(f"Longest path chromosome: {longest_path_chromosome}")
+    # Add a chromosome with the longest path (going through all charging stations)
+    longest_path_chromosome = list(range(num_points))
+    population.append(longest_path_chromosome)
+    print(f"Longest path chromosome: {longest_path_chromosome}")
 
-     # Add chromosomes with random paths between origin and destination until we reach the total number of individuals in the population
-     for i in range(population_size - 2):
-         num_stops = random.randint(1, num_points)  # Vary the number of stops
-         stops = sorted(random.sample(range(num_points), num_stops))
-         random_chromosome = stops
-         population.append(random_chromosome)
-         print(f"Random chromosome {i + 2}: {random_chromosome}")
-     return population
+    # Add chromosomes with random paths between origin and destination until we reach the total number of individuals in the population
+    for i in range(population_size - 2):
+        num_stops = random.randint(1, num_points)  # Vary the number of stops
+        stops = sorted(random.sample(range(num_points), num_stops))
+        random_chromosome = stops
+        population.append(random_chromosome)
+        print(f"Random chromosome {i + 2}: {random_chromosome}")
+    return population
+
 
 '''
 
@@ -221,77 +227,61 @@ def initialize_population(points_with_ids, population_size):
 '''
 
 
-def evaluate_population(population, connections, distances_CS, penalties, ev_capacity, distances_between_points):
+def evaluate_population(population, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels, starting_point_cluster):
     fitnesses = [
-        fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points)
+        fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels, starting_point_cluster)
         for route in population
     ]
 
     evaluated_population = list(zip(population, fitnesses))
     sorted_population = sorted(evaluated_population, key=lambda x: x[1], reverse=True)
     sorted_routes = [route for route, _ in sorted_population]
-    fitnesses = [fit for _, fit in sorted_population]
+    sorted_fitnesses = [fitness for _, fitness in sorted_population]
 
-    for i, (route, fitness) in enumerate(sorted_population):
-        validity = check_validity(route, connections, distances_CS, ev_capacity, distances_between_points)
-        print(f"Chromosome {i}: {route} with fitness {fitness} and validity {validity}")
+    return sorted_routes, sorted_fitnesses
 
-    return sorted_routes, fitnesses
+def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
+                      penalties,
+                      ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
+    distances_CS = calculate_distances_of_CS(points_with_ids, route_points)
 
-
-def genetic_algorithm(points_with_ids, route, connections, population_size, generations, mutation_rate, penalties,
-                      ev_capacity, distances_between_points, max_stagnation):
-    print("Initializing population...")
     population = initialize_population(points_with_ids, population_size)
-    distances_CS = calculate_distances_of_CS(points_with_ids, route)
-    best_route = None
-    best_fitness = float('-inf')
+    evaluated_population, fitnesses = evaluate_population(population, connections, distances_CS, penalties,
+                                                          ev_capacity, distances_between_points, labels,
+                                                          starting_point_cluster)
 
-    # Stagnation variables
+    best_fitness = fitnesses[0]
+    best_route = evaluated_population[0]
+
     stagnation_counter = 0
-
     for generation in range(generations):
-        population, fitnesses = evaluate_population(population, connections, distances_CS, penalties, ev_capacity,
-                                                    distances_between_points)
+        next_population = []
+        for _ in range(population_size // 2):
+            parent1 = tournament_selection(evaluated_population, fitnesses, tournament_size=5)
+            parent2 = tournament_selection(evaluated_population, fitnesses, tournament_size=5)
+
+            child1, child2 = crossover(parent1, parent2)
+            child1 = mutate(child1, mutation_rate, points_with_ids)
+            child2 = mutate(child2, mutation_rate, points_with_ids)
+
+            next_population.append(child1)
+            next_population.append(child2)
+
+        evaluated_population, fitnesses = evaluate_population(next_population, connections, distances_CS, penalties,
+                                                              ev_capacity, distances_between_points, labels,
+                                                              starting_point_cluster)
 
         current_best_fitness = fitnesses[0]
-        current_best_route = population[0]
-
-        # Check for improvement
         if current_best_fitness > best_fitness:
             best_fitness = current_best_fitness
-            best_route = copy.deepcopy(current_best_route)
-            stagnation_counter = 0  # Reset stagnation counter
-            print(f'Generation {generation} best fitness {best_fitness}')
+            best_route = evaluated_population[0]
+            stagnation_counter = 0
         else:
             stagnation_counter += 1
 
-        # Terminate if stagnation limit is reached
         if stagnation_counter >= max_stagnation:
-            print(f"Terminating due to stagnation at generation {generation}.")
             break
 
-        print("Best route + best fitness:", best_route, best_fitness)
-
-        # Select parents, perform crossover and mutation
-        new_population = []
-        while len(new_population) < population_size - 2:
-            parent1 = tournament_selection(population, fitnesses, tournament_size=4)
-            parent2 = tournament_selection(population, fitnesses, tournament_size=4)
-
-            child1, child2 = crossover(parent1, parent2)
-            new_population.append(mutate(child1, mutation_rate, points_with_ids))
-            new_population.append(mutate(child2, mutation_rate, points_with_ids))
-
-        print("Best route + best fitness after copying:", best_route, best_fitness)
-        new_population.append(copy.deepcopy(best_route))  # Append a copy of the best route to the new population
-        print("Best route added to new population:", best_route)
-
-        population = new_population
-
-    if generation == generations - 1:
-        print(f"Info: Terminating due to reaching maximum of {generations} generations.")
-
-    print(f"Final best route + best fitness:", best_route, best_fitness)
+        print(f"Generation {generation + 1}: Best fitness = {best_fitness}")
 
     return best_route
