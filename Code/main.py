@@ -26,7 +26,7 @@ labels, centroids = kmeans_clustering(points)
 
 assigned_points = assign_route_points_to_centroids(centroids, route)
 
-plot_centroids_and_route(centroids, route, assigned_points)
+# plot_centroids_and_route(centroids, route, assigned_points)
 
 # Define starting point and determine its cluster
 starting_point_index = 0  # Specify your starting point index
@@ -42,3 +42,24 @@ print("Best Route:", best_route_indices)
 
 demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization',
                          distances_between_points)
+
+
+# Function to print waiting time for each stop
+def print_waiting_times_and_distances(best_route_indices, points_matrix, route, labels, starting_point_cluster,
+                                      average_waiting_time):
+    for stop_index in best_route_indices:
+        stop_id, (x, y), _ = points_matrix[stop_index]
+        cluster = labels[stop_index]
+        if cluster == starting_point_cluster:
+            waiting_time = penalties[stop_index]  # Use real waiting time
+        else:
+            waiting_time = average_waiting_time  # Use average waiting time
+
+        closest_route_index = closest_point(route, (x, y))
+        min_distance = np.hypot(x - route[closest_route_index][0], y - route[closest_route_index][1])
+
+        print(f"Stop {stop_index}: Waiting Time = {waiting_time}, Distance to Route = {min_distance:.2f}")
+
+
+print_waiting_times_and_distances(best_route_indices, points_matrix, route, labels, starting_point_cluster,
+                                  AVERAGE_WAITING_TIME)
