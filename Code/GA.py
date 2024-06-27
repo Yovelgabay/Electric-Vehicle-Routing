@@ -96,7 +96,7 @@ def fitness_function(chromosome, connections, distances, penalties, ev_capacity,
                      starting_point_cluster):
     exceeded_km = 0
     if not check_validity(chromosome, connections, distances, ev_capacity, route_distances):
-        exceeded_km = 70 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
+        exceeded_km = 50 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
                                                          route_distances)
 
     total_distance = sum(distances[stop] for stop in chromosome)
