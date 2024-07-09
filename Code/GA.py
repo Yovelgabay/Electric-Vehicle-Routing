@@ -196,20 +196,21 @@ def initialize_population(points_with_ids, population_size):
     if num_points > 0:
         shortest_path_chromosome = [random.choice(range(num_points))]
         population.append(shortest_path_chromosome)
-        print(f"Shortest path chromosome: {shortest_path_chromosome}")
+        # print(f"Shortest path chromosome: {shortest_path_chromosome}")
 
     # Add a chromosome with the longest path (going through all charging stations)
     longest_path_chromosome = list(range(num_points))
     population.append(longest_path_chromosome)
-    print(f"Longest path chromosome: {longest_path_chromosome}")
+    # print(f"Longest path chromosome: {longest_path_chromosome}")
 
-    # Add chromosomes with random paths between origin and destination until we reach the total number of individuals in the population
+    # Add chromosomes with random paths between origin and destination until we reach the total number of individuals
+    # in the population
     for i in range(population_size - 2):
         num_stops = random.randint(1, num_points)  # Vary the number of stops
         stops = sorted(random.sample(range(num_points), num_stops))
         random_chromosome = stops
         population.append(random_chromosome)
-        print(f"Random chromosome {i + 2}: {random_chromosome}")
+        # print(f"Random chromosome {i + 2}: {random_chromosome}")
     return population
 
 
@@ -227,9 +228,11 @@ def initialize_population(points_with_ids, population_size):
 '''
 
 
-def evaluate_population(population, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels, starting_point_cluster):
+def evaluate_population(population, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels,
+                        starting_point_cluster):
     fitnesses = [
-        fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels, starting_point_cluster)
+        fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels,
+                         starting_point_cluster)
         for route in population
     ]
 
@@ -239,6 +242,7 @@ def evaluate_population(population, connections, distances_CS, penalties, ev_cap
     sorted_fitnesses = [fitness for _, fitness in sorted_population]
 
     return sorted_routes, sorted_fitnesses
+
 
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
                       penalties,
@@ -284,4 +288,4 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
 
         print(f"Generation {generation + 1}: Best fitness = {best_fitness}")
 
-    return best_route
+    return best_route, best_fitness

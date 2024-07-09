@@ -4,6 +4,7 @@ from scipy.spatial.distance import cdist
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
+
 def plot_centroids_and_route(centroids, route, closest_centroids):
     """
     Visualize centroids with the corresponding route.
@@ -22,7 +23,7 @@ def plot_centroids_and_route(centroids, route, closest_centroids):
     for idx, centroid in enumerate(centroids):
         plt.scatter(*centroid, color=colors(idx), label=f'Centroid {idx}', edgecolor='black', s=200, marker='X')
 
-    # Plot route points with colors corresponding to closest centroids
+    # Plot route points with colors corresponding to the closest centroids
     for idx, (point, centroid_idx) in enumerate(zip(route, closest_centroids)):
         plt.scatter(*point, color=colors(centroid_idx), edgecolor='black')
         plt.plot([point[0], centroids[centroid_idx][0]], [point[1], centroids[centroid_idx][1]],
@@ -164,3 +165,42 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
     plt.grid(True)
     plt.legend()
     plt.show()
+
+
+# Function to print waiting time for each stop
+def print_waiting_times_and_distances(best_route_indices, points_matrix, route, labels, starting_point_cluster,
+                                      average_waiting_time, penalties):
+    for stop_index in best_route_indices:
+        stop_id, (x, y), _ = points_matrix[stop_index]
+        cluster = labels[stop_index]
+        if cluster == starting_point_cluster:
+            waiting_time = penalties[stop_index]  # Use real waiting time
+        else:
+            waiting_time = average_waiting_time  # Use average waiting time
+
+        closest_route_index = closest_point(route, (x, y))
+        min_distance = np.hypot(x - route[closest_route_index][0], y - route[closest_route_index][1])
+
+        print(f"Stop {stop_index}: Waiting Time = {waiting_time:.2f}, Distance to Route = {min_distance:.2f}")
+
+
+def visualize_clustering(num_clusters, points, labels, centroids):
+    # Visualize the clustered points
+    plt.figure(figsize=(8, 6))
+    cmap = plt.cm.get_cmap('tab10')
+
+    for i in range(num_clusters):
+        cluster_points = points[labels == i]
+        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], color=cmap(i), marker='o', label=f'Cluster {i + 1}')
+        plt.scatter(centroids[i, 0], centroids[i, 1], color='black', marker='x', s=100, linewidths=3)
+
+    plt.title('K-Means Clustering of Random Points')
+    plt.xlabel('X Coordinate')
+    plt.ylabel('Y Coordinate')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # # Print points and their assigned clusters
+    # for i, (point, label) in enumerate(zip(points, labels)):
+    #     print(f'Point {i}: ({point[0]:.2f}, {point[1]:.2f}) - Cluster {label + 1}')
