@@ -24,15 +24,16 @@ def assign_route_points_to_centroids(centroids, route):
     return closest_centroids
 
 
-def generate_zigzag_route(num_points, scale, turn_amplitude, seed):
+def generate_route_with_checkpoints(num_points, scale, turn_amplitude, seed, checkpoints):
     """
-    Generates a zigzag route with specified parameters.
+    Generates a route with specified parameters and includes checkpoints.
 
     Parameters:
     - num_points (int): Number of points to generate along the route.
     - scale (float): Scaling factor for the route dimensions.
     - turn_amplitude (float): Amplitude of the zigzag turns.
     - seed (int): Random seed for reproducibility.
+    - checkpoints (list): List of checkpoints that the route must pass through.
 
     Returns:
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
@@ -41,14 +42,28 @@ def generate_zigzag_route(num_points, scale, turn_amplitude, seed):
     random.seed(seed)
     start_point = np.array([0, 0])
     end_point = np.array([scale, scale])
-    waypoints = np.linspace(start_point, end_point, num=num_points - 1)[1:-1]
-    for i in range(len(waypoints)):
-        angle = np.pi / 2
-        direction = random.choice([-1, 1])
-        dx = turn_amplitude * direction * np.cos(angle)
-        dy = turn_amplitude * direction * np.sin(angle)
-        waypoints[i] += np.array([dx, dy])
-    route = np.vstack([start_point, waypoints, end_point])
+
+    # Combine start point, checkpoints, and end point
+    all_points = [start_point] + checkpoints + [end_point]
+
+    waypoints = []
+    for i in range(len(all_points) - 1):
+        segment_start = all_points[i]
+        segment_end = all_points[i + 1]
+        segment_waypoints = np.linspace(segment_start, segment_end, num=int(num_points / (len(all_points) - 1)),
+                                        endpoint=False)[1:]
+
+        for j in range(len(segment_waypoints)):
+            angle = np.pi / 2
+            direction = random.choice([-1, 1])
+            dx = turn_amplitude * direction * np.cos(angle)
+            dy = turn_amplitude * direction * np.sin(angle)
+            segment_waypoints[j] += np.array([dx, dy])
+
+        waypoints.extend(segment_waypoints)
+
+    waypoints.append(end_point)
+    route = np.vstack([start_point, waypoints])
 
     return route
 
