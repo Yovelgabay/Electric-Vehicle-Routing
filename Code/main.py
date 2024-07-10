@@ -3,7 +3,7 @@ from Code.functions import assign_route_points_to_centroids, generate_route_with
     calculate_distances_between_points, \
     generate_random_points_and_penalties, get_intersection_points, closest_point
 from visualization import demonstrate_chosen_route, plot_centroids_and_route, visualize_route, \
-    print_waiting_times_and_distances, visualize_clustering
+    print_waiting_times_and_distances, visualize_clustering, print_segment_lengths
 from GA import genetic_algorithm
 from kmeans import kmeans_clustering
 from parameters import *
@@ -37,16 +37,19 @@ starting_point_index = 2  # Specify your starting point index
 starting_point_cluster = labels[starting_point_index]
 
 # Run the genetic algorithm
-best_route_indices, _ = genetic_algorithm(points_matrix, route, connections, population_size=POPULATION_SIZE,
-                                          generations=GENERATIONS, mutation_rate=MUTATION_RATE,
-                                          penalties=penalties, ev_capacity=ev_capacity,
-                                          distances_between_points=distances_between_points,
-                                          max_stagnation=MAX_STAGNATION,
-                                          labels=labels, starting_point_cluster=starting_point_cluster)
-print("Best Route:", best_route_indices)
+best_charging_stations, _ = genetic_algorithm(points_matrix, route, connections, population_size=POPULATION_SIZE,
+                                              generations=GENERATIONS, mutation_rate=MUTATION_RATE,
+                                              penalties=penalties, ev_capacity=ev_capacity,
+                                              distances_between_points=distances_between_points,
+                                              max_stagnation=MAX_STAGNATION,
+                                              labels=labels, starting_point_cluster=starting_point_cluster)
+print("Best Charging Stations:", best_charging_stations)
 
-demonstrate_chosen_route(route, points, best_route_indices, connections, 'Chosen Route Visualization',
+demonstrate_chosen_route(route, points, best_charging_stations, connections, 'Chosen Route Visualization',
                          distances_between_points)
 
-print_waiting_times_and_distances(best_route_indices, points_matrix, route, labels, starting_point_cluster,
-                                  AVERAGE_WAITING_TIME, penalties)
+
+# print_waiting_times_and_distances(best_charging_stations, points_matrix, route, labels, starting_point_cluster,
+#                                   AVERAGE_WAITING_TIME, penalties)
+
+print_segment_lengths(route, connections, best_charging_stations)
