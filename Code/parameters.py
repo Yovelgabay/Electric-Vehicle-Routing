@@ -5,12 +5,12 @@ NUM_ROUTE_POINTS = 20
 POPULATION_SIZE = 1000
 GENERATIONS = 100
 MUTATION_RATE = 0.1
-NUM_POINTS = 40
+NUM_POINTS = 30
 MAX_STAGNATION = 15
 AVERAGE_WAITING_TIME = 10
 
 CHECK_POINTS = [
-    np.array([20, 80]),
-    np.array([50, 10]),
+    np.array([10, 80]),
+    np.array([40, 10]),
     np.array([75, 75])
 ]

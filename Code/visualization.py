@@ -65,17 +65,18 @@ def visualize_route(points, route, title, penalties, connections=None, distances
     # Plot the route
     plt.plot(route[:, 0], route[:, 1], 'r-o', label='Route')
 
+    # Define custom colormap ranging from green to red
+    cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
+
     # Normalize penalties for color mapping
-    norm = Normalize(penalties.min(), penalties.max())
-    cmap = cm.get_cmap('viridis')
-    sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+    norm = Normalize(vmin=penalties.min(), vmax=penalties.max())
 
     # Scatter points with color mapped based on penalties
     sc = plt.scatter(points[:, 0], points[:, 1], c=penalties, cmap=cmap, norm=norm, label='Charging Stations',
                      edgecolor='black')
 
     # Add colorbar to indicate penalty scale
-    cbar = plt.colorbar(sm)
+    cbar = plt.colorbar(sc)
     cbar.set_label('Penalties')
 
     # Annotate each point
@@ -204,3 +205,39 @@ def visualize_clustering(num_clusters, points, labels, centroids):
     # # Print points and their assigned clusters
     # for i, (point, label) in enumerate(zip(points, labels)):
     #     print(f'Point {i}: ({point[0]:.2f}, {point[1]:.2f}) - Cluster {label + 1}')
+
+
+def print_segment_lengths(route, connections, best_charging_stations):
+    segments_lengths = []
+
+    # Calculate length from start to first charging station
+    start_to_first = 0.0
+    for i in range(connections[best_charging_stations[0]][1]):
+        start_to_first += np.linalg.norm(route[i + 1] - route[i])
+    segments_lengths.append(start_to_first)
+    print(f"Segment 1: {start_to_first:.2f}")
+
+    # Calculate lengths between consecutive charging stations
+    for i in range(len(best_charging_stations) - 1):
+        current_charging_station = best_charging_stations[i]
+        next_charging_station = best_charging_stations[i + 1]
+
+        closest_route_point_current = connections[current_charging_station][1]
+        closest_route_point_next = connections[next_charging_station][1]
+
+        segment_length = 0.0
+        for j in range(closest_route_point_current, closest_route_point_next):
+            segment_length += np.linalg.norm(route[j + 1] - route[j])
+
+        segments_lengths.append(segment_length)
+        print(f"Segment {i + 2}: {segment_length:.2f}")
+
+    # Calculate length from last charging station to endpoint
+    last_to_end = 0.0
+    last_charging_station = best_charging_stations[-1]
+    endpoint_index = len(route) - 1
+    for i in range(connections[last_charging_station][1], endpoint_index):
+        last_to_end += np.linalg.norm(route[i + 1] - route[i])
+
+    segments_lengths.append(last_to_end)
+    print(f"Segment {len(best_charging_stations) + 1}: {last_to_end:.2f}")

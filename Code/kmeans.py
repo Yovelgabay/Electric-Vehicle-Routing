@@ -22,6 +22,7 @@ def optimal_k_using_silhouette(data, max_k=10):
 def kmeans_clustering(points):
     # K-Means Clustering
     num_clusters, silhouette_scores = optimal_k_using_silhouette(points, max_k=10)
+    num_clusters = 7
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(points)
     labels = kmeans.labels_
     centroids = kmeans.cluster_centers_
