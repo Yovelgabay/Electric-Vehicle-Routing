@@ -207,15 +207,21 @@ def visualize_clustering(num_clusters, points, labels, centroids):
     #     print(f'Point {i}: ({point[0]:.2f}, {point[1]:.2f}) - Cluster {label + 1}')
 
 
-def print_segment_lengths(route, connections, best_charging_stations):
-    segments_lengths = []
+def print_segment_lengths(route, connections, best_charging_stations, points):
+    distances = []
+    for stop_index in best_charging_stations:
+        stop_id, (x, y), _ = points[stop_index]
+        closest_route_index = closest_point(route, (x, y))
+        min_distance = np.hypot(x - route[closest_route_index][0], y - route[closest_route_index][1])
+        distances.append(min_distance)
 
+    segments_lengths = []
     # Calculate length from start to first charging station
     start_to_first = 0.0
     for i in range(connections[best_charging_stations[0]][1]):
         start_to_first += np.linalg.norm(route[i + 1] - route[i])
     segments_lengths.append(start_to_first)
-    print(f"Segment 1: {start_to_first:.2f}")
+    # print(f"Segment 1: {start_to_first:.2f}")
 
     # Calculate lengths between consecutive charging stations
     for i in range(len(best_charging_stations) - 1):
@@ -230,7 +236,7 @@ def print_segment_lengths(route, connections, best_charging_stations):
             segment_length += np.linalg.norm(route[j + 1] - route[j])
 
         segments_lengths.append(segment_length)
-        print(f"Segment {i + 2}: {segment_length:.2f}")
+        # print(f"Segment {i + 2}: {segment_length:.2f}")
 
     # Calculate length from last charging station to endpoint
     last_to_end = 0.0
@@ -240,4 +246,14 @@ def print_segment_lengths(route, connections, best_charging_stations):
         last_to_end += np.linalg.norm(route[i + 1] - route[i])
 
     segments_lengths.append(last_to_end)
-    print(f"Segment {len(best_charging_stations) + 1}: {last_to_end:.2f}")
+    # print(f"Segment {len(best_charging_stations) + 1}: {last_to_end:.2f}")
+    for i in range(len(segments_lengths)):
+        if i == 0:
+            segments_lengths[i] += distances[i]
+        elif i != (len(segments_lengths)-1):
+            segments_lengths[i] += distances[i] + distances[i-1]
+        else:
+            segments_lengths[i] += distances[i - 1]
+
+    for i in range(len(segments_lengths)):
+        print(f"Part {i + 1}: {segments_lengths[i]:.2f}")

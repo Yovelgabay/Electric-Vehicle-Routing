@@ -52,4 +52,4 @@ demonstrate_chosen_route(route, points, best_charging_stations, connections, 'Ch
 # print_waiting_times_and_distances(best_charging_stations, points_matrix, route, labels, starting_point_cluster,
 #                                   AVERAGE_WAITING_TIME, penalties)
 
-print_segment_lengths(route, connections, best_charging_stations)
+print_segment_lengths(route, connections, best_charging_stations, points_matrix)
