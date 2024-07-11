@@ -2,8 +2,8 @@ import numpy as np
 from Code.functions import assign_route_points_to_centroids, generate_route_with_checkpoints, \
     calculate_distances_between_points, \
     generate_random_points_and_penalties, get_intersection_points, closest_point
-from visualization import demonstrate_chosen_route, plot_centroids_and_route, visualize_route, \
-    print_waiting_times_and_distances, visualize_clustering, print_segment_lengths
+from visualization import (demonstrate_chosen_route, plot_centroids_and_route, visualize_route,
+                           visualize_clustering, print_segment_lengths, print_waiting_times)
 from GA import genetic_algorithm
 from kmeans import kmeans_clustering
 from parameters import *
@@ -27,13 +27,13 @@ visualize_route(points, route, 'Zigzag Route with Checkpoints Visualization', pe
 
 # Apply clustering and genetic algorithm
 labels, centroids, num_clusters = kmeans_clustering(points)
-visualize_clustering(num_clusters, points, labels, centroids)
+# visualize_clustering(num_clusters, points, labels, centroids)
 assigned_points = assign_route_points_to_centroids(centroids, route)
 
-plot_centroids_and_route(centroids, route, assigned_points)
+# plot_centroids_and_route(centroids, route, assigned_points)
 
 # Define starting point and determine its cluster
-starting_point_index = 2  # Specify your starting point index
+starting_point_index = 0  # Specify your starting point index
 starting_point_cluster = labels[starting_point_index]
 
 # Run the genetic algorithm
@@ -48,8 +48,7 @@ print("Best Charging Stations:", best_charging_stations)
 demonstrate_chosen_route(route, points, best_charging_stations, connections, 'Chosen Route Visualization',
                          distances_between_points)
 
-
-# print_waiting_times_and_distances(best_charging_stations, points_matrix, route, labels, starting_point_cluster,
-#                                   AVERAGE_WAITING_TIME, penalties)
+print_waiting_times(best_charging_stations, points_matrix, labels, starting_point_cluster,
+                    AVERAGE_WAITING_TIME, penalties)
 
 print_segment_lengths(route, connections, best_charging_stations, points_matrix)

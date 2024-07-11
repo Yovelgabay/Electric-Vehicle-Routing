@@ -169,20 +169,16 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
 
 
 # Function to print waiting time for each stop
-def print_waiting_times_and_distances(best_route_indices, points_matrix, route, labels, starting_point_cluster,
-                                      average_waiting_time, penalties):
-    for stop_index in best_route_indices:
+def print_waiting_times(best_charging_stations, points_matrix, labels, starting_point_cluster,
+                        average_waiting_time, penalties):
+    for stop_index in best_charging_stations:
         stop_id, (x, y), _ = points_matrix[stop_index]
         cluster = labels[stop_index]
         if cluster == starting_point_cluster:
             waiting_time = penalties[stop_index]  # Use real waiting time
         else:
             waiting_time = average_waiting_time  # Use average waiting time
-
-        closest_route_index = closest_point(route, (x, y))
-        min_distance = np.hypot(x - route[closest_route_index][0], y - route[closest_route_index][1])
-
-        print(f"Stop {stop_index}: Waiting Time = {waiting_time:.2f}, Distance to Route = {min_distance:.2f}")
+        print(f"CS {stop_index}: Waiting Time = {waiting_time:.2f}")
 
 
 def visualize_clustering(num_clusters, points, labels, centroids):
@@ -208,20 +204,19 @@ def visualize_clustering(num_clusters, points, labels, centroids):
 
 
 def print_segment_lengths(route, connections, best_charging_stations, points):
+    # Calculate distances from charging stations to the closest route points
     distances = []
     for stop_index in best_charging_stations:
-        stop_id, (x, y), _ = points[stop_index]
+        _, (x, y), _ = points[stop_index]
         closest_route_index = closest_point(route, (x, y))
         min_distance = np.hypot(x - route[closest_route_index][0], y - route[closest_route_index][1])
         distances.append(min_distance)
 
     segments_lengths = []
     # Calculate length from start to first charging station
-    start_to_first = 0.0
-    for i in range(connections[best_charging_stations[0]][1]):
-        start_to_first += np.linalg.norm(route[i + 1] - route[i])
+    start_to_first = sum(
+        np.linalg.norm(route[i + 1] - route[i]) for i in range(connections[best_charging_stations[0]][1]))
     segments_lengths.append(start_to_first)
-    # print(f"Segment 1: {start_to_first:.2f}")
 
     # Calculate lengths between consecutive charging stations
     for i in range(len(best_charging_stations) - 1):
@@ -231,29 +226,28 @@ def print_segment_lengths(route, connections, best_charging_stations, points):
         closest_route_point_current = connections[current_charging_station][1]
         closest_route_point_next = connections[next_charging_station][1]
 
-        segment_length = 0.0
-        for j in range(closest_route_point_current, closest_route_point_next):
-            segment_length += np.linalg.norm(route[j + 1] - route[j])
-
+        segment_length = sum(np.linalg.norm(route[j + 1] - route[j]) for j in
+                             range(closest_route_point_current, closest_route_point_next))
         segments_lengths.append(segment_length)
-        # print(f"Segment {i + 2}: {segment_length:.2f}")
 
     # Calculate length from last charging station to endpoint
-    last_to_end = 0.0
     last_charging_station = best_charging_stations[-1]
     endpoint_index = len(route) - 1
-    for i in range(connections[last_charging_station][1], endpoint_index):
-        last_to_end += np.linalg.norm(route[i + 1] - route[i])
-
+    last_to_end = sum(
+        np.linalg.norm(route[i + 1] - route[i]) for i in range(connections[last_charging_station][1], endpoint_index))
     segments_lengths.append(last_to_end)
-    # print(f"Segment {len(best_charging_stations) + 1}: {last_to_end:.2f}")
+
+    # Print segment lengths with distances to/from charging stations
     for i in range(len(segments_lengths)):
         if i == 0:
             segments_lengths[i] += distances[i]
-        elif i != (len(segments_lengths)-1):
-            segments_lengths[i] += distances[i] + distances[i-1]
+            print(f"Travel distance from the starting point to CS "
+                  f"{best_charging_stations[i]} is: {segments_lengths[i]:.2f}")
+        elif i != (len(segments_lengths) - 1):
+            segments_lengths[i] += distances[i] + distances[i - 1]
+            print(f"Travel distance from CS {best_charging_stations[i - 1]} to CS "
+                  f"{best_charging_stations[i]} is: {segments_lengths[i]:.2f}")
         else:
             segments_lengths[i] += distances[i - 1]
-
-    for i in range(len(segments_lengths)):
-        print(f"Part {i + 1}: {segments_lengths[i]:.2f}")
+            print(f"Travel distance from CS "
+                  f"{best_charging_stations[i - 1]} to the endpoint is: {segments_lengths[i]:.2f}")
