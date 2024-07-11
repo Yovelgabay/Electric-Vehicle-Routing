@@ -9,7 +9,7 @@ def point_to_point_distance(px, py, qx, qy):
     return np.hypot(px - qx, py - qy)
 
 
-def calculate_distances_of_CS(points_with_ids, route):
+def calculate_distances_of_cs(points_with_ids, route):
     num_points = len(points_with_ids)
     num_route_points = len(route)
     min_distances = np.zeros(num_points)
@@ -96,7 +96,7 @@ def fitness_function(chromosome, connections, distances, penalties, ev_capacity,
                      starting_point_cluster):
     exceeded_km = 0
     if not check_validity(chromosome, connections, distances, ev_capacity, route_distances):
-        exceeded_km = 50 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
+        exceeded_km = 100 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
                                                          route_distances)
 
     total_distance = sum(distances[stop] for stop in chromosome)
@@ -152,39 +152,76 @@ def crossover(parent1, parent2):
 
     return child1, child2
 
-
+"""
 def mutate(route, mutation_rate, points_with_ids):
-    """
-    Mutates a given route by randomly changing one of the charging stations in the route with another valid station.
-
-    Parameters:
-    - route (list): List of indices representing the route of the EV through charging stations.
-    - mutation_rate (float): Probability of mutation for the route.
-    - points_with_ids (list): List of tuples (index, coordinates, closest route segment index) for each charging station.
-
-    Returns:
-    - route (list): Mutated route.
-    """
     if random.random() < mutation_rate:
         idx = random.randint(0, len(route) - 1)
-
         if idx == 0:
             min_val = 0
         else:
             min_val = route[idx - 1]
-
         if idx == len(route) - 1:
             max_val = len(points_with_ids) - 1
         else:
             max_val = route[idx + 1]
-
         possible_stations = [i for i in range(min_val + 1, max_val) if i != route[idx]]
-
         if possible_stations:
             new_station = random.choice(possible_stations)
             route[idx] = new_station
 
     return route
+ """
+
+
+def mutate(route, points_with_ids):
+    """
+    Mutates a given chromosome by either replacing, adding, or swapping charging stations.
+
+    Parameters:
+    - chromosome (dict): Chromosome with a route.
+    - points_with_ids (list): List of tuples (index, coordinates, closest route segment index) for each charging station.
+
+    Returns:
+    - mutated_chromosome1, mutated_chromosome2 (tuple): Two mutated chromosomes.
+    """
+    route1 = copy.deepcopy(route)
+    route2 = copy.deepcopy(route)
+
+    if len(route) == 1:
+        possible_stations_to_add = [i for i in range(len(points_with_ids)) if i not in route]
+        if possible_stations_to_add:
+            new_station1 = random.choice(possible_stations_to_add)
+            new_station2 = random.choice(possible_stations_to_add)
+            route1[0] = new_station1
+            route2[0] = new_station2
+
+    # If route has two stations, create two new routes by adding a station between the two
+    elif len(route) == 2:
+        min_val = route[0]
+        max_val = route[1]
+        possible_stations = [i for i in range(min_val + 1, max_val) if i not in route]
+        if possible_stations:
+            new_station1 = random.choice(possible_stations)
+            new_station2 = random.choice(possible_stations)
+            route1.insert(1, new_station1)
+            route2.insert(1, new_station2)
+
+
+    elif len(route) >= 3:
+        idx_remove = random.randint(1, len(route1) - 1)
+        route1.pop(idx_remove)
+
+        idx_add = random.randint(1, len(route2) - 1)
+        min_val = route2[idx_add - 1]
+        max_val = route2[idx_add]
+        possible_stations = [i for i in range(min_val + 1, max_val) if i not in route2]
+        if possible_stations:
+            new_station = random.choice(possible_stations)
+            route2.insert(idx_add, new_station)
+        else:
+            idx_remove = random.randint(1, len(route1) - 1)
+            route2.pop(idx_remove)
+    return route1, route2
 
 
 def initialize_population(points_with_ids, population_size):
@@ -215,7 +252,6 @@ def initialize_population(points_with_ids, population_size):
 
 
 '''
-
 def initialize_population(points_with_ids, population_size):
     population = []
     num_points = len(points_with_ids)
@@ -247,7 +283,7 @@ def evaluate_population(population, connections, distances_CS, penalties, ev_cap
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
                       penalties,
                       ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
-    distances_CS = calculate_distances_of_CS(points_with_ids, route_points)
+    distances_CS = calculate_distances_of_cs(points_with_ids, route_points)
 
     population = initialize_population(points_with_ids, population_size)
     evaluated_population, fitnesses = evaluate_population(population, connections, distances_CS, penalties,
@@ -260,16 +296,15 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
     stagnation_counter = 0
     for generation in range(generations):
         next_population = []
-        for _ in range(population_size // 2):
+        for _ in range(population_size // 4):
             parent1 = tournament_selection(evaluated_population, fitnesses, tournament_size=5)
             parent2 = tournament_selection(evaluated_population, fitnesses, tournament_size=5)
 
             child1, child2 = crossover(parent1, parent2)
-            child1 = mutate(child1, mutation_rate, points_with_ids)
-            child2 = mutate(child2, mutation_rate, points_with_ids)
+            mutated_child1a, mutated_child1b = mutate(child1, points_with_ids)
+            mutated_child2a, mutated_child2b = mutate(child2, points_with_ids)
 
-            next_population.append(child1)
-            next_population.append(child2)
+            next_population.extend([mutated_child1a, mutated_child1b, mutated_child2a, mutated_child2b])
 
         evaluated_population, fitnesses = evaluate_population(next_population, connections, distances_CS, penalties,
                                                               ev_capacity, distances_between_points, labels,
