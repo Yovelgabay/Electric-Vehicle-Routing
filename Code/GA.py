@@ -126,31 +126,33 @@ def tournament_selection(population, fitnesses, tournament_size):
 
     return selected_parent
 
-
 def crossover(parent1, parent2):
     size1, size2 = len(parent1), len(parent2)
     set1 = set(parent1)
     set2 = set(parent2)
-    common_nodes = list(
-        set1 & set2 - set([parent1[0], parent1[-1], parent2[0], parent2[-1]]))
-
+    common_nodes = list(set1 & set2 - set([parent1[0], parent1[-1], parent2[0], parent2[-1]]))
     if not common_nodes:
-        return parent1, parent2
+        # Perform crossover without common nodes
+        crossover_point = min(len(parent1), len(parent2)) // 2
+        offspring1_route = sorted(parent1[:crossover_point] + parent2[crossover_point:])
+        offspring2_route = sorted(parent2[:crossover_point] + parent1[crossover_point:])
+    else:
+        # Perform crossover with common nodes
+        crossing_node = random.choice(common_nodes)
 
-    crossing_node = random.choice(common_nodes)
+        idx1 = parent1.index(crossing_node)
+        idx2 = parent2.index(crossing_node)
 
-    idx1 = parent1.index(crossing_node)
-    idx2 = parent2.index(crossing_node)
+        child1_part1 = parent1[:idx1]
+        child1_part2 = parent2[idx2:]
+        offspring1_route = sorted(child1_part1 + child1_part2)
 
-    child1_part1 = parent1[:idx1]
-    child1_part2 = parent2[idx2:]
-    child1 = child1_part1 + child1_part2
+        child2_part1 = parent2[:idx2]
+        child2_part2 = parent1[idx1:]
+        offspring2_route = sorted(child2_part1 + child2_part2)
 
-    child2_part1 = parent2[:idx2]
-    child2_part2 = parent1[idx1:]
-    child2 = child2_part1 + child2_part2
+    return offspring1_route, offspring2_route
 
-    return child1, child2
 
 """
 def mutate(route, mutation_rate, points_with_ids):
