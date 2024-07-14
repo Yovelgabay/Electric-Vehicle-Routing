@@ -96,8 +96,8 @@ def fitness_function(chromosome, connections, distances, penalties, ev_capacity,
                      starting_point_cluster):
     exceeded_km = 0
     if not check_validity(chromosome, connections, distances, ev_capacity, route_distances):
-        exceeded_km = 100 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
-                                                         route_distances)
+        exceeded_km = 200 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
+                                                          route_distances)
 
     total_distance = sum(distances[stop] for stop in chromosome)
     total_penalty = sum(
@@ -152,6 +152,7 @@ def crossover(parent1, parent2):
 
     return child1, child2
 
+
 """
 def mutate(route, mutation_rate, points_with_ids):
     if random.random() < mutation_rate:
@@ -173,20 +174,24 @@ def mutate(route, mutation_rate, points_with_ids):
  """
 
 
-def mutate(route, points_with_ids):
+def mutate(route, points_with_ids, mutation_rate):
     """
     Mutates a given chromosome by either replacing, adding, or swapping charging stations.
 
     Parameters:
-    - chromosome (dict): Chromosome with a route.
+    - route (list): List representing the route with charging stations.
     - points_with_ids (list): List of tuples (index, coordinates, closest route segment index) for each charging station.
+    - mutation_rate (float): Probability of mutating the route, between 0 and 1.
 
     Returns:
-    - mutated_chromosome1, mutated_chromosome2 (tuple): Two mutated chromosomes.
+    - mutated_route1, mutated_route2 (tuple): Two mutated routes.
     """
+    if random.random() > mutation_rate:
+        # No mutation occurs, return the original route twice
+        return copy.deepcopy(route), copy.deepcopy(route)
+
     route1 = copy.deepcopy(route)
     route2 = copy.deepcopy(route)
-
     if len(route) == 1:
         possible_stations_to_add = [i for i in range(len(points_with_ids)) if i not in route]
         if possible_stations_to_add:
@@ -205,7 +210,6 @@ def mutate(route, points_with_ids):
             new_station2 = random.choice(possible_stations)
             route1.insert(1, new_station1)
             route2.insert(1, new_station2)
-
 
     elif len(route) >= 3:
         idx_remove = random.randint(1, len(route1) - 1)
@@ -281,11 +285,11 @@ def evaluate_population(population, connections, distances_CS, penalties, ev_cap
 
 
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
-                      penalties,ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
+                      penalties, ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
     total_route_distance = np.sum(distances_between_points)
-    print("Total_route_distance: ",total_route_distance)
+    print("Total_route_distance: ", total_route_distance)
     if ev_capacity > total_route_distance:
-        return [] , 1
+        return [], 1
 
     distances_CS = calculate_distances_of_cs(points_with_ids, route_points)
 
@@ -305,8 +309,8 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
             parent2 = tournament_selection(evaluated_population, fitnesses, tournament_size=5)
 
             child1, child2 = crossover(parent1, parent2)
-            mutated_child1a, mutated_child1b = mutate(child1, points_with_ids)
-            mutated_child2a, mutated_child2b = mutate(child2, points_with_ids)
+            mutated_child1a, mutated_child1b = mutate(child1, points_with_ids, mutation_rate)
+            mutated_child2a, mutated_child2b = mutate(child2, points_with_ids, mutation_rate)
 
             next_population.extend([mutated_child1a, mutated_child1b, mutated_child2a, mutated_child2b])
 
