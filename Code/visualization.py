@@ -204,6 +204,11 @@ def visualize_clustering(num_clusters, points, labels, centroids):
 
 
 def print_segment_lengths(route, connections, best_charging_stations, points):
+    # If there are no charging stations selected, print total route distance and return
+    if not best_charging_stations:
+        total_distance = sum(np.linalg.norm(route[i + 1] - route[i]) for i in range(len(route) - 1))
+        print(f"Total route distance: {total_distance:.2f} (No charging stations needed)")
+        return
     # Calculate distances from charging stations to the closest route points
     distances = []
     for stop_index in best_charging_stations:
