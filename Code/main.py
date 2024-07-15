@@ -24,37 +24,34 @@ intersections = get_intersection_points(route, points)
 connections = [(idx, closest_point(route, pt)) for idx, pt, _ in intersections]
 
 # Define starting point and determine its cluster
-starting_point_index = 0  # Specify your starting point index
+starting_point_index = 3  # Specify your starting point index
 
 updated_route = route[starting_point_index:]
+
 
 updated_connections = [(x, y) for (x, y) in connections if y >= starting_point_index]
 
 values_to_remove = len(connections) - len(updated_connections)
-print(values_to_remove)
 
-print("Connections:")
-print(connections)
-print("Updated Connections:")
-print(updated_connections)
 # Update points_matrix and penalties by removing the first `values_to_remove` entries
 updated_points_matrix = points_matrix[values_to_remove:]
 updated_penalties = penalties[values_to_remove:]
 
-# Display the updated results
-print("Updated points_matrix:")
-for point in updated_points_matrix:
-    print(point)
-print("Updated penalties:")
-print(updated_penalties)
 updated_points = np.array([point[1] for point in updated_points_matrix])
 updated_distances_between_points = calculate_distances_between_points(updated_route)
 
-visualize_route(updated_points, updated_route, 'Zigzag Route with Checkpoints Visualization',
+visualize_route(updated_points, updated_route, 'Route Visualization',
                 updated_penalties, updated_connections, updated_distances_between_points, values_to_remove,
                 starting_point_index)
 
+# visualize_route(points, route, 'Route Visualization', penalties, connections, distances_between_points,
+#                 points_diff=0, route_diff=0)
+
 # Apply clustering and genetic algorithm
+# points, connections, route, penalties, points_matrix = (updated_points, updated_connections,
+#                                                         updated_route, updated_penalties, updated_points_matrix)
+
+
 labels, centroids, num_clusters = kmeans_clustering(points)
 starting_point_cluster = labels[starting_point_index]
 # visualize_clustering(num_clusters, points, labels, centroids)

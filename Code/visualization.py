@@ -97,8 +97,8 @@ def visualize_route(points, route, title, penalties, connections=None, distances
                  [points[start - points_diff][1], route[end - route_diff][1]], 'k--')
 
     # Set the limits of the plot
-    plt.xlim(0, 100)
-    plt.ylim(0, 100)
+    plt.xlim(-2, 102)
+    plt.ylim(-2, 102)
 
     plt.title(title)
     plt.xlabel('X Coordinate')
