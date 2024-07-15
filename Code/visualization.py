@@ -40,7 +40,8 @@ def plot_centroids_and_route(centroids, route, closest_centroids):
     plt.show()
 
 
-def visualize_route(points, route, title, penalties, connections=None, distances=None):
+def visualize_route(points, route, title, penalties, connections=None, distances=None,
+                    points_diff=0, route_diff=0):
     """
     Visualizes the route and charging stations with penalties color mapping.
 
@@ -92,7 +93,12 @@ def visualize_route(points, route, title, penalties, connections=None, distances
 
     # Plot connections
     for start, end in connections:
-        plt.plot([points[start][0], route[end][0]], [points[start][1], route[end][1]], 'k--')
+        plt.plot([points[start - points_diff][0], route[end - route_diff][0]],
+                 [points[start - points_diff][1], route[end - route_diff][1]], 'k--')
+
+    # Set the limits of the plot
+    plt.xlim(-2, 102)
+    plt.ylim(-2, 102)
 
     plt.title(title)
     plt.xlabel('X Coordinate')

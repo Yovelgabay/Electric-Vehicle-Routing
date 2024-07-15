@@ -2,15 +2,16 @@ import numpy as np
 
 EV_CAPACITY = 100
 NUM_ROUTE_POINTS = 20
-POPULATION_SIZE = 5000
+POPULATION_SIZE = 200
 GENERATIONS = 100
-MUTATION_RATE = 0.2
-NUM_POINTS = 100
+MUTATION_RATE = 0.3
+NUM_POINTS = 50
 MAX_STAGNATION = 15
 AVERAGE_WAITING_TIME = 10
 
 CHECK_POINTS = [
-    np.array([10, 80]),
-    np.array([40, 10]),
-    np.array([75, 75])
+    np.array([10, 90]),
+    np.array([30, 5]),
+    np.array([60, 90]),
+    np.array([90, 40])
 ]
