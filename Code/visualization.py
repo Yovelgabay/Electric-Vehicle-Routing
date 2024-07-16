@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 from scipy.spatial.distance import cdist
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
@@ -166,6 +167,9 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
         mid_y = (route[i, 1] + route[i + 1, 1]) / 2
         plt.text(mid_x, mid_y, f'{distances[i]:.2f}', fontsize=10, color='black')
 
+    plt.xlim(-2, 102)
+    plt.ylim(-2, 102)
+
     plt.title(title)
     plt.xlabel('X Coordinate')
     plt.ylabel('Y Coordinate')
@@ -262,3 +266,128 @@ def print_segment_lengths(route, connections, best_charging_stations, points):
             segments_lengths[i] += distances[i - 1]
             print(f"Travel distance from CS "
                   f"{best_charging_stations[i - 1]} to the endpoint is: {segments_lengths[i]:.2f}")
+
+
+def update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, generation):
+    """
+    Update the plot with the best route and charging stations at each generation.
+
+    Parameters:
+    - ax: Matplotlib axis object.
+    - route: Array of (x, y) coordinates defining the route.
+    - points: Array of (x, y) coordinates of the points.
+    - best_charging_stations: List of indices representing the best charging stations.
+    - connections: List of tuples defining connections between points and route segments.
+    - distances_between_points: List of distances between consecutive route points.
+    - generation: Current generation number for display.
+    """
+    ax.clear()
+    ax.plot(route[:, 0], route[:, 1], 'r-o', label='Route')
+
+    chosen_points = points[best_charging_stations]
+    ax.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5,
+               label='Chosen Charging Stations')
+
+    for i, (x, y) in enumerate(chosen_points):
+        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i]}', fontsize=12, color='gold')
+
+    chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_charging_stations]
+    for start, end in chosen_connections:
+        ax.plot([route[end][0], points[start][0]], [route[end][1], points[start][1]], 'r-', linewidth=2)
+        mid_x = (route[end][0] + points[start][0]) / 2
+        mid_y = (route[end][1] + points[start][1]) / 2
+        segment_length = np.linalg.norm(route[end] - points[start])
+        ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
+
+    ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
+    ax.plot(route[:, 0], route[:, 1], 'green', linestyle='dashed', alpha=0.5)
+
+    for i in range(len(route) - 1):
+        mid_x = (route[i, 0] + route[i + 1, 0]) / 2
+        mid_y = (route[i, 1] + route[i + 1, 1]) / 2
+        ax.text(mid_x, mid_y, f'{distances_between_points[i]:.2f}', fontsize=10, color='black')
+
+    # Add generation number text at the top middle
+    ax.text(0.5, 0.95, f'Generation: {generation}', transform=ax.transAxes, fontsize=14,
+            horizontalalignment='center', verticalalignment='top', bbox=dict(facecolor='white', alpha=0.5))
+
+    plt.xlim(-2, 102)
+    plt.ylim(-2, 102)
+
+    ax.set_title("Chosen Route Visualization")
+    ax.set_xlabel('X Coordinate')
+    ax.set_ylabel('Y Coordinate')
+    ax.grid(True)
+    ax.legend()
+
+
+def visualize_best_route_animation(route, points, generations_data, connections, distances_between_points,
+                                   interval=500):
+    """
+    Visualize the best route at each generation using animation.
+
+    Parameters:
+    - route: Array of (x, y) coordinates defining the route.
+    - points: Array of (x, y) coordinates of the points.
+    - generations_data: List of best charging stations for each generation.
+    - connections: List of tuples defining connections between points and route segments.
+    - distances_between_points: List of distances between consecutive route points.
+    - interval: Time interval between frames in milliseconds.
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    def update(frame):
+        best_charging_stations = generations_data[frame]
+        update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, frame)
+        return ax
+
+    ani = FuncAnimation(fig, update, frames=len(generations_data), interval=interval, repeat=False)
+    plt.show()
+
+
+def update_plot_for_dynamic(ax, route, points, best_charging_stations, connections, distances, starting_point_index):
+    ax.clear()
+
+    # Highlight the chosen charging stations.
+    chosen_points = points[best_charging_stations]
+    ax.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5,
+               label='Chosen Charging Stations')
+
+    for i, (x, y) in enumerate(chosen_points):
+        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i]}', fontsize=12, color='gold')
+
+    # Plot connections only to the chosen stations
+    chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_charging_stations]
+    for start, end in chosen_connections:
+        ax.plot([route[end][0], points[start][0]], [route[end][1], points[start][1]], 'r-', linewidth=2)
+        mid_x = (route[end][0] + points[start][0]) / 2
+        mid_y = (route[end][1] + points[start][1]) / 2
+        segment_length = np.linalg.norm(route[end] - points[start])
+        ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
+
+    # Plot the entire route and annotate all segment lengths
+    ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
+    ax.plot(route[:, 0], route[:, 1], 'green', linestyle='dashed', alpha=0.5)
+
+    for i in range(len(route) - 1):
+        mid_x = (route[i, 0] + route[i + 1, 0]) / 2
+        mid_y = (route[i, 1] + route[i + 1, 1]) / 2
+        ax.text(mid_x, mid_y, f'{distances[i]:.2f}', fontsize=10, color='black')
+
+    # Set the limits of the plot
+    plt.xlim(-2, 102)
+    plt.ylim(-2, 102)
+
+    ax.set_title(f'Route Visualization - Starting Point Index: {starting_point_index}')
+    ax.set_xlabel('X Coordinate')
+    ax.set_ylabel('Y Coordinate')
+    ax.grid(True)
+    ax.legend()
+
+
+def visualize_all_routes(best_routes):
+    fig, ax = plt.subplots(figsize=(10, 8))
+    for starting_point_index, (route, points, best_charging_stations, connections, distances) in enumerate(best_routes):
+        update_plot_for_dynamic(ax, route, points, best_charging_stations, connections, distances, starting_point_index)
+        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)
+    plt.show()
