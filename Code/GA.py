@@ -126,6 +126,7 @@ def tournament_selection(population, fitnesses, tournament_size):
 
     return selected_parent
 
+
 def crossover(parent1, parent2):
     size1, size2 = len(parent1), len(parent2)
     set1 = set(parent1)
@@ -152,7 +153,6 @@ def crossover(parent1, parent2):
         offspring2_route = sorted(child2_part1 + child2_part2)
 
     return offspring1_route, offspring2_route
-
 
 
 """
@@ -289,9 +289,8 @@ def evaluate_population(population, connections, distances_CS, penalties, ev_cap
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
                       penalties, ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
     total_route_distance = np.sum(distances_between_points)
-    print("Total_route_distance: ", total_route_distance)
     if ev_capacity > total_route_distance:
-        return [], 1
+        return [], 1, []
 
     distances_CS = calculate_distances_of_cs(points_with_ids, route_points)
 
@@ -302,6 +301,7 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
 
     best_fitness = fitnesses[0]
     best_route = evaluated_population[0]
+    best_routes_per_generation = [best_route]
 
     stagnation_counter = 0
     for generation in range(generations):
@@ -328,9 +328,11 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
         else:
             stagnation_counter += 1
 
+        best_routes_per_generation.append(best_route)
+
         if stagnation_counter >= max_stagnation:
             break
 
-        print(f"Generation {generation + 1}: Best fitness = {best_fitness}")
+        print(f"Generation {generation + 1}: Best fitness = {best_fitness * 100:.5f}")
 
-    return best_route, best_fitness
+    return best_route, best_fitness, best_routes_per_generation
