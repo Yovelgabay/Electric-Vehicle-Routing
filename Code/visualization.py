@@ -268,7 +268,7 @@ def print_segment_lengths(route, connections, best_charging_stations, points):
                   f"{best_charging_stations[i - 1]} to the endpoint is: {segments_lengths[i]:.2f}")
 
 
-def update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, generation):
+def update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties, generation):
     """
     Update the plot with the best route and charging stations at each generation.
 
@@ -279,14 +279,25 @@ def update_plot(ax, route, points, best_charging_stations, connections, distance
     - best_charging_stations: List of indices representing the best charging stations.
     - connections: List of tuples defining connections between points and route segments.
     - distances_between_points: List of distances between consecutive route points.
+    - penalties: Array of penalty values for each charging station.
     - generation: Current generation number for display.
     """
     ax.clear()
     ax.plot(route[:, 0], route[:, 1], 'r-o', label='Route')
 
+    # Define custom colormap ranging from green to red
+    cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
+
+    # Normalize penalties for color mapping
+    norm = Normalize(vmin=min(penalties), vmax=max(penalties))
+
+    # Get chosen points and their penalties
     chosen_points = points[best_charging_stations]
-    ax.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5,
-               label='Chosen Charging Stations')
+    chosen_penalties = penalties[best_charging_stations]
+
+    # Scatter chosen points with color based on penalties
+    sc = ax.scatter(chosen_points[:, 0], chosen_points[:, 1], c=cmap(norm(chosen_penalties)), s=100, zorder=5,
+                    label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_points):
         ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i]}', fontsize=12, color='gold')
@@ -311,8 +322,8 @@ def update_plot(ax, route, points, best_charging_stations, connections, distance
     ax.text(0.5, 0.95, f'Generation: {generation}', transform=ax.transAxes, fontsize=14,
             horizontalalignment='center', verticalalignment='top', bbox=dict(facecolor='white', alpha=0.5))
 
-    plt.xlim(-2, 102)
-    plt.ylim(-2, 102)
+    ax.set_xlim(-2, 102)
+    ax.set_ylim(-2, 102)
 
     ax.set_title("Chosen Route Visualization")
     ax.set_xlabel('X Coordinate')
@@ -320,9 +331,18 @@ def update_plot(ax, route, points, best_charging_stations, connections, distance
     ax.grid(True)
     ax.legend()
 
+    # Add a color bar to indicate penalty values
+    if not hasattr(ax, 'cbar') or ax.cbar is None:
+        sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+        sm.set_array([])
+        ax.cbar = plt.colorbar(sm, ax=ax)
+        ax.cbar.set_label('Penalty Value')
+    else:
+        ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
+
 
 def visualize_best_route_animation(route, points, generations_data, connections, distances_between_points,
-                                   interval=500):
+                                   penalties, interval=500):
     """
     Visualize the best route at each generation using animation.
 
@@ -338,7 +358,7 @@ def visualize_best_route_animation(route, points, generations_data, connections,
 
     def update(frame):
         best_charging_stations = generations_data[frame]
-        update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, frame)
+        update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties,frame)
         return ax
 
     ani = FuncAnimation(fig, update, frames=len(generations_data), interval=interval, repeat=False)

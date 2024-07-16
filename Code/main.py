@@ -49,8 +49,8 @@ best_charging_stations, _, generations_data = genetic_algorithm(points_matrix, r
 # visualize_route(points, route, 'Route Visualization', penalties, connections, distances_between_points,
 #                 points_diff=0, route_diff=0)
 
-visualize_best_route_animation(route, points, generations_data, connections, distances_between_points,
-                               interval=500)
+visualize_best_route_animation(route, points, generations_data, connections,
+                               distances_between_points, penalties, interval=500)
 
 print_waiting_times(best_charging_stations, points_matrix, labels, starting_point_cluster,
                     AVERAGE_WAITING_TIME, penalties)
