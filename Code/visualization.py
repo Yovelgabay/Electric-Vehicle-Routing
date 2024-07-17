@@ -430,5 +430,5 @@ def visualize_all_routes(best_routes):
     for starting_point_index, (route, points, best_charging_stations, connections, penalties, distances) in enumerate(best_routes):
         update_plot_for_dynamic(ax, route, points, best_charging_stations,
                                 connections, penalties, distances, starting_point_index)
-        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)
+        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)!
     plt.show()
