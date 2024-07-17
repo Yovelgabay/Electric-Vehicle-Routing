@@ -365,13 +365,24 @@ def visualize_best_route_animation(route, points, generations_data, connections,
     plt.show()
 
 
-def update_plot_for_dynamic(ax, route, points, best_charging_stations, connections, distances, starting_point_index):
+def update_plot_for_dynamic(ax, route, points, best_charging_stations, connections,
+                            penalties, distances, starting_point_index):
     ax.clear()
 
     # Highlight the chosen charging stations.
+    # Define custom colormap ranging from green to red
+    cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
+
+    # Normalize penalties for color mapping
+    norm = Normalize(vmin=min(penalties), vmax=max(penalties))
+
+    # Get chosen points and their penalties
     chosen_points = points[best_charging_stations]
-    ax.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5,
-               label='Chosen Charging Stations')
+    chosen_penalties = penalties[best_charging_stations]
+
+    # Scatter chosen points with color based on penalties
+    sc = ax.scatter(chosen_points[:, 0], chosen_points[:, 1], c=cmap(norm(chosen_penalties)), s=100, zorder=5,
+                    label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_points):
         ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i]}', fontsize=12, color='gold')
@@ -404,10 +415,20 @@ def update_plot_for_dynamic(ax, route, points, best_charging_stations, connectio
     ax.grid(True)
     ax.legend()
 
+    # Add a color bar to indicate penalty values
+    if not hasattr(ax, 'cbar') or ax.cbar is None:
+        sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+        sm.set_array([])
+        ax.cbar = plt.colorbar(sm, ax=ax)
+        ax.cbar.set_label('Penalty Value')
+    else:
+        ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
+
 
 def visualize_all_routes(best_routes):
     fig, ax = plt.subplots(figsize=(10, 8))
-    for starting_point_index, (route, points, best_charging_stations, connections, distances) in enumerate(best_routes):
-        update_plot_for_dynamic(ax, route, points, best_charging_stations, connections, distances, starting_point_index)
-        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)
+    for starting_point_index, (route, points, best_charging_stations, connections, penalties, distances) in enumerate(best_routes):
+        update_plot_for_dynamic(ax, route, points, best_charging_stations,
+                                connections, penalties, distances, starting_point_index)
+        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)!
     plt.show()
