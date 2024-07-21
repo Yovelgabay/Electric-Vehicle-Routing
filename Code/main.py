@@ -58,11 +58,12 @@ assigned_points = assign_route_points_to_centroids(centroids, route)
 # print_segment_lengths(route, connections, best_charging_stations, points_matrix)
 
 best_routes = []
-for starting_point_index in range(len(route) - 4):
+labels, centroids, num_clusters = kmeans_clustering(points)
+for starting_point_index in range(0, len(route)):
     print(f"Calculating for Starting Point Index: {starting_point_index}")
 
     updated_route = route[starting_point_index:]
-    updated_connections = [(x, y) for (x, y) in connections if y >= starting_point_index]
+    updated_connections = [(x, y - starting_point_index) for (x, y) in connections if y >= starting_point_index]
     values_to_remove = len(connections) - len(updated_connections)
 
     # Update points_matrix and penalties by removing the first `values_to_remove` entries
@@ -72,7 +73,6 @@ for starting_point_index in range(len(route) - 4):
     updated_distances_between_points = calculate_distances_between_points(updated_route)
 
     # Apply clustering and genetic algorithm
-    labels, centroids, num_clusters = kmeans_clustering(updated_points)
     starting_point_cluster = labels[starting_point_index]
 
     assigned_points = assign_route_points_to_centroids(centroids, updated_route)
@@ -91,6 +91,8 @@ for starting_point_index in range(len(route) - 4):
     best_routes.append(
         (updated_route, updated_points, best_charging_stations, updated_connections, penalties, updated_distances_between_points))
 
-
+# print_segment_lengths(updated_route, updated_connections, best_charging_stations, updated_points_matrix)
+# print_waiting_times(best_charging_stations, updated_points_matrix, labels, starting_point_cluster,
+#                     AVERAGE_WAITING_TIME, updated_penalties)
 # Call the function to visualize all routes
 visualize_all_routes(best_routes)

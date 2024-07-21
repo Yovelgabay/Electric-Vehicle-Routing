@@ -336,7 +336,7 @@ def update_plot(ax, route, points, best_charging_stations, connections, distance
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
         ax.cbar = plt.colorbar(sm, ax=ax)
-        ax.cbar.set_label('Penalty Value')
+        ax.cbar.set_label('Waiting time at CS')
     else:
         ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
 
@@ -420,7 +420,7 @@ def update_plot_for_dynamic(ax, route, points, best_charging_stations, connectio
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
         ax.cbar = plt.colorbar(sm, ax=ax)
-        ax.cbar.set_label('Penalty Value')
+        ax.cbar.set_label('Waiting time at CS')
     else:
         ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
 
