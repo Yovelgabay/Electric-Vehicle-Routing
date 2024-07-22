@@ -1,6 +1,6 @@
-import math
 from Code.functions import assign_route_points_to_centroids, generate_route_with_checkpoints, \
-    calculate_distances_between_points, generate_random_points_and_penalties, get_intersection_points, closest_point
+    calculate_distances_between_points, \
+    generate_random_points_and_penalties, get_intersection_points, closest_point
 from visualization import (demonstrate_chosen_route, plot_centroids_and_route, visualize_route,
                            visualize_clustering, print_segment_lengths, print_waiting_times,
                            visualize_best_route_animation, visualize_all_routes)
@@ -25,14 +25,40 @@ starting_point_index = 0
 intersections = get_intersection_points(route, points)
 connections = [(idx, closest_point(route, pt)) for idx, pt, _ in intersections]
 
-labels, centroids, num_clusters = kmeans_clustering(points, math.ceil(num_route_points / 3))
+labels, centroids, num_clusters = kmeans_clustering(points)
 starting_point_cluster = labels[starting_point_index]
 
 assigned_points = assign_route_points_to_centroids(centroids, route)
 
-# List to store the best routes for each starting point index
+# # Run the genetic algorithm
+# best_charging_stations, _, generations_data = genetic_algorithm(points_matrix, route,
+#                                                                 connections,
+#                                                                 population_size=POPULATION_SIZE,
+#                                                                 generations=GENERATIONS,
+#                                                                 mutation_rate=MUTATION_RATE,
+#                                                                 penalties=penalties,
+#                                                                 ev_capacity=ev_capacity,
+#                                                                 distances_between_points=distances_between_points,
+#                                                                 max_stagnation=MAX_STAGNATION, labels=labels,
+#                                                                 starting_point_cluster=starting_point_cluster)
+#
+# # Visualize the route animation
+# # demonstrate_chosen_route(route, points, best_charging_stations, connections,
+# #                          'Chosen Route Visualization',
+# #                          distances_between_points)
+# # visualize_route(points, route, 'Route Visualization', penalties, connections, distances_between_points,
+# #                 points_diff=0, route_diff=0)
+#
+# visualize_best_route_animation(route, points, generations_data, connections,
+#                                distances_between_points, penalties, interval=500)
+#
+# print_waiting_times(best_charging_stations, points_matrix, labels, starting_point_cluster,
+#                     AVERAGE_WAITING_TIME, penalties)
+#
+# print_segment_lengths(route, connections, best_charging_stations, points_matrix)
+
 best_routes = []
-visualize_clustering(num_clusters, points, labels, centroids)
+labels, centroids, num_clusters = kmeans_clustering(points)
 for starting_point_index in range(0, len(route)):
     print(f"Calculating for Starting Point Index: {starting_point_index}")
 
@@ -62,10 +88,11 @@ for starting_point_index in range(0, len(route)):
                                                                     distances_between_points=updated_distances_between_points,
                                                                     max_stagnation=MAX_STAGNATION, labels=labels,
                                                                     starting_point_cluster=starting_point_cluster)
-
     best_routes.append(
-        (updated_route, updated_points, best_charging_stations, updated_connections, updated_penalties,
-         updated_distances_between_points, values_to_remove))
+        (updated_route, updated_points, best_charging_stations, updated_connections, penalties, updated_distances_between_points))
 
+# print_segment_lengths(updated_route, updated_connections, best_charging_stations, updated_points_matrix)
+# print_waiting_times(best_charging_stations, updated_points_matrix, labels, starting_point_cluster,
+#                     AVERAGE_WAITING_TIME, updated_penalties)
 # Call the function to visualize all routes
 visualize_all_routes(best_routes)
