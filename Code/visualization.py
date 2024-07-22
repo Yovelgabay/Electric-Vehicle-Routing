@@ -268,7 +268,8 @@ def print_segment_lengths(route, connections, best_charging_stations, points):
                   f"{best_charging_stations[i - 1]} to the endpoint is: {segments_lengths[i]:.2f}")
 
 
-def update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties, generation):
+def update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties,
+                generation):
     """
     Update the plot with the best route and charging stations at each generation.
 
@@ -358,7 +359,7 @@ def visualize_best_route_animation(route, points, generations_data, connections,
 
     def update(frame):
         best_charging_stations = generations_data[frame]
-        update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties,frame)
+        update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties, frame)
         return ax
 
     ani = FuncAnimation(fig, update, frames=len(generations_data), interval=interval, repeat=False)
@@ -366,7 +367,7 @@ def visualize_best_route_animation(route, points, generations_data, connections,
 
 
 def update_plot_for_dynamic(ax, route, points, best_charging_stations, connections,
-                            penalties, distances, starting_point_index):
+                            penalties, distances, starting_point_index, points_to_add):
     ax.clear()
 
     # Highlight the chosen charging stations.
@@ -378,14 +379,14 @@ def update_plot_for_dynamic(ax, route, points, best_charging_stations, connectio
 
     # Get chosen points and their penalties
     chosen_points = points[best_charging_stations]
-    chosen_penalties = penalties[best_charging_stations]
+    chosen_penalties = [penalties[idx] for idx in best_charging_stations]
 
     # Scatter chosen points with color based on penalties
     sc = ax.scatter(chosen_points[:, 0], chosen_points[:, 1], c=cmap(norm(chosen_penalties)), s=100, zorder=5,
                     label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_points):
-        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i]}', fontsize=12, color='gold')
+        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add}', fontsize=12, color='gold')
 
     # Plot connections only to the chosen stations
     chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_charging_stations]
@@ -427,8 +428,9 @@ def update_plot_for_dynamic(ax, route, points, best_charging_stations, connectio
 
 def visualize_all_routes(best_routes):
     fig, ax = plt.subplots(figsize=(10, 8))
-    for starting_point_index, (route, points, best_charging_stations, connections, penalties, distances) in enumerate(best_routes):
+    for starting_point_index, (
+    route, points, best_charging_stations, connections, penalties, distances, points_to_add) in enumerate(best_routes):
         update_plot_for_dynamic(ax, route, points, best_charging_stations,
-                                connections, penalties, distances, starting_point_index)
+                                connections, penalties, distances, starting_point_index, points_to_add)
         plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)!
     plt.show()
