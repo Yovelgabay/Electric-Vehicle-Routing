@@ -1,3 +1,4 @@
+import math
 from Code.functions import assign_route_points_to_centroids, generate_route_with_checkpoints, \
     calculate_distances_between_points, generate_random_points_and_penalties, get_intersection_points, closest_point
 from visualization import (demonstrate_chosen_route, plot_centroids_and_route, visualize_route,
@@ -24,14 +25,14 @@ starting_point_index = 0
 intersections = get_intersection_points(route, points)
 connections = [(idx, closest_point(route, pt)) for idx, pt, _ in intersections]
 
-labels, centroids, num_clusters = kmeans_clustering(points)
+labels, centroids, num_clusters = kmeans_clustering(points, math.ceil(num_route_points / 3))
 starting_point_cluster = labels[starting_point_index]
 
 assigned_points = assign_route_points_to_centroids(centroids, route)
 
 # List to store the best routes for each starting point index
 best_routes = []
-
+visualize_clustering(num_clusters, points, labels, centroids)
 for starting_point_index in range(0, len(route)):
     print(f"Calculating for Starting Point Index: {starting_point_index}")
 
