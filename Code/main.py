@@ -4,7 +4,7 @@ from Code.functions import assign_route_points_to_centroids, generate_route_with
 from visualization import (demonstrate_chosen_route, plot_centroids_and_route, visualize_route,
                            visualize_clustering, print_segment_lengths, print_waiting_times,
                            visualize_best_route_animation, visualize_all_routes)
-from GA import genetic_algorithm
+from GA import genetic_algorithm, calculate_distances_of_cs
 from kmeans import kmeans_clustering
 from parameters import *
 
@@ -32,7 +32,9 @@ assigned_points = assign_route_points_to_centroids(centroids, route)
 
 # List to store the best routes for each starting point index
 best_routes = []
-visualize_clustering(num_clusters, points, labels, centroids)
+final_chromosome = []
+initial_ev_capacity = ev_capacity
+
 for starting_point_index in range(0, len(route)):
     print(f"Calculating for Starting Point Index: {starting_point_index}")
 
@@ -51,6 +53,11 @@ for starting_point_index in range(0, len(route)):
 
     assigned_points = assign_route_points_to_centroids(centroids, updated_route)
 
+    # Deduct segment distance from initial_ev_capacity
+    if starting_point_index > 0:
+        initial_ev_capacity -= distances_between_points[starting_point_index - 1]
+        print("initial_ev_capacity", initial_ev_capacity)
+
     # Run the genetic algorithm
     best_charging_stations, _, generations_data = genetic_algorithm(updated_points_matrix, updated_route,
                                                                     updated_connections,
@@ -59,10 +66,21 @@ for starting_point_index in range(0, len(route)):
                                                                     mutation_rate=MUTATION_RATE,
                                                                     penalties=updated_penalties,
                                                                     ev_capacity=ev_capacity,
+                                                                    initial_ev_capacity=initial_ev_capacity,
                                                                     distances_between_points=updated_distances_between_points,
                                                                     max_stagnation=MAX_STAGNATION, labels=labels,
                                                                     starting_point_cluster=starting_point_cluster)
 
+
+
+    if best_charging_stations and connections[best_charging_stations[0]+values_to_remove][1] == starting_point_index:
+        # Add the charging station to the final_chromosome
+        final_chromosome.append(best_charging_stations[0]+values_to_remove)
+        distances_to_route = calculate_distances_of_cs(points_matrix, route)
+        distance_to_route = distances_to_route[best_charging_stations[0]+values_to_remove]
+        initial_ev_capacity = ev_capacity - distance_to_route
+
+    print("final_chromosome", final_chromosome)
     best_routes.append(
         (updated_route, updated_points, best_charging_stations, updated_connections, updated_penalties,
          updated_distances_between_points, values_to_remove))
