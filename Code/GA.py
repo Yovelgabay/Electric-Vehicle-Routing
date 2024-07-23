@@ -290,7 +290,7 @@ def evaluate_population(population, connections, distances_CS, penalties, ev_cap
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
                       penalties, ev_capacity, initial_ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
     total_route_distance = np.sum(distances_between_points)
-    if ev_capacity > total_route_distance:
+    if initial_ev_capacity > total_route_distance:
         return [], 1, []
 
     distances_CS = calculate_distances_of_cs(points_with_ids, route_points)
@@ -333,7 +333,6 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
 
         if stagnation_counter >= max_stagnation:
             break
-
         print(f"Generation {generation + 1}: Best fitness = {best_fitness * 100:.5f}")
 
     return best_route, best_fitness, best_routes_per_generation
