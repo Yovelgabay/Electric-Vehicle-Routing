@@ -23,13 +23,13 @@ def calculate_distances_of_cs(points_with_ids, route):
     return min_distances
 
 
-def check_validity(chromosome, connections, distances, ev_capacity, route_distances):
+def check_validity(chromosome, connections, distances, ev_capacity, route_distances,initial_ev_capacity):
     total_distance = 0
 
     # Calculate the distance from the start point to the first charging station
     start_to_first = sum(route_distances[:connections[chromosome[0]][1]])
     start_to_first += distances[chromosome[0]]
-    if start_to_first > ev_capacity:
+    if start_to_first > initial_ev_capacity:
         return False
     total_distance += start_to_first
 
@@ -60,13 +60,13 @@ def check_validity(chromosome, connections, distances, ev_capacity, route_distan
     return True
 
 
-def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, route_distances):
+def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, initial_ev_capacity, route_distances):
     total_excess_km = 0
 
     # Calculate the distance from the start point to the first charging station
     start_to_first = sum(route_distances[:connections[route[0]][1]]) + distances[route[0]]
-    if start_to_first > ev_capacity:
-        total_excess_km += start_to_first - ev_capacity
+    if start_to_first > initial_ev_capacity:
+        total_excess_km += start_to_first - initial_ev_capacity
 
     # Calculate distances between consecutive charging stations
     for i in range(len(route) - 1):
@@ -92,12 +92,14 @@ def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, ro
     return total_excess_km
 
 
-def fitness_function(chromosome, connections, distances, penalties, ev_capacity, route_distances, labels,
+
+
+def fitness_function(chromosome, connections, distances, penalties, ev_capacity, initial_ev_capacity, route_distances, labels,
                      starting_point_cluster):
     exceeded_km = 0
-    if not check_validity(chromosome, connections, distances, ev_capacity, route_distances):
+    if not check_validity(chromosome, connections, distances, ev_capacity, route_distances,initial_ev_capacity):
         exceeded_km = 200 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
-                                                          route_distances)
+                                                          initial_ev_capacity, route_distances)
 
     total_distance = sum(distances[stop] for stop in chromosome)
     total_penalty = sum(
@@ -270,10 +272,10 @@ def initialize_population(points_with_ids, population_size):
 '''
 
 
-def evaluate_population(population, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels,
+def evaluate_population(population, connections, distances_CS, penalties, ev_capacity, initial_ev_capacity, distances_between_points, labels,
                         starting_point_cluster):
     fitnesses = [
-        fitness_function(route, connections, distances_CS, penalties, ev_capacity, distances_between_points, labels,
+        fitness_function(route, connections, distances_CS, penalties, ev_capacity, initial_ev_capacity, distances_between_points, labels,
                          starting_point_cluster)
         for route in population
     ]
@@ -285,9 +287,8 @@ def evaluate_population(population, connections, distances_CS, penalties, ev_cap
 
     return sorted_routes, sorted_fitnesses
 
-
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
-                      penalties, ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
+                      penalties, ev_capacity, initial_ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
     total_route_distance = np.sum(distances_between_points)
     if ev_capacity > total_route_distance:
         return [], 1, []
@@ -296,7 +297,7 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
 
     population = initialize_population(points_with_ids, population_size)
     evaluated_population, fitnesses = evaluate_population(population, connections, distances_CS, penalties,
-                                                          ev_capacity, distances_between_points, labels,
+                                                          ev_capacity, initial_ev_capacity, distances_between_points, labels,
                                                           starting_point_cluster)
 
     best_fitness = fitnesses[0]
@@ -317,7 +318,7 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
             next_population.extend([mutated_child1a, mutated_child1b, mutated_child2a, mutated_child2b])
 
         evaluated_population, fitnesses = evaluate_population(next_population, connections, distances_CS, penalties,
-                                                              ev_capacity, distances_between_points, labels,
+                                                              ev_capacity, initial_ev_capacity, distances_between_points, labels,
                                                               starting_point_cluster)
 
         current_best_fitness = fitnesses[0]
