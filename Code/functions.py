@@ -68,7 +68,7 @@ def generate_route_with_checkpoints(num_points, scale, turn_amplitude, seed, che
     return route
 
 
-def calculate_distances_between_points(route):
+def calculate_route_points_distances(route):
     """
     Calculates distances between consecutive points on the route.
 
@@ -76,39 +76,39 @@ def calculate_distances_between_points(route):
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
 
     Returns:
-    - distances_between_points (np.ndarray): Distances between consecutive points on the route.
+    - route_points_distances (np.ndarray): Distances between consecutive points on the route.
     """
-    distances_between_points = np.linalg.norm(np.diff(route, axis=0), axis=1)
-    return distances_between_points
+    route_points_distances = np.linalg.norm(np.diff(route, axis=0), axis=1)
+    return route_points_distances
 
 
-def generate_random_points_and_penalties(seed, num_points, scale, route):
+def generate_random_charging_stations_and_queueing_time(seed, num_points, scale, route):
     """
-    Generates random points and penalties.
+    Generates random charging_stations and queueing_time.
 
     Parameters:
     - seed (int): Random seed for reproducibility.
-    - num_points (int): Number of points to generate.
+    - num_points (int): Number of charging_stations to generate.
     - scale (float): Scaling factor for the point coordinates.
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
 
     Returns:
     - points_with_ids (list): List of tuples containing point ID, coordinates, and closest route index.
-    - penalties (np.ndarray): Array of penalties associated with each point.
+    - queueing_time (np.ndarray): Array of queueing_time associated with each point.
     """
     np.random.seed(seed)
-    points = np.random.rand(num_points, 2) * scale
+    charging_stations = np.random.rand(num_points, 2) * scale
     np.random.seed(seed + 1)
-    penalties = np.random.uniform(1, 20, num_points)
-    intersections = get_intersection_points(route, points)
+    queueing_time = np.random.uniform(1, 20, num_points)
+    intersections = get_intersection_points(route, charging_stations)
     station_ids = sort_stations_by_route(intersections)
-    points_with_ids = [(i, points[i], intersections[i][2]) for i in station_ids]
-    return points_with_ids, penalties
+    points_with_ids = [(i, charging_stations[i], intersections[i][2]) for i in station_ids]
+    return points_with_ids, queueing_time
 
 
-def closest_point(route, point):
+def closest_point(route, charging_station):
     """
-    Finds the closest point on the route to the given point.
+    Finds the closest route point to a given charging station.
 
     Parameters:
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
@@ -117,25 +117,26 @@ def closest_point(route, point):
     Returns:
     - int: Index of the closest point on the route.
     """
-    distances = cdist([point], route, 'euclidean')
+    distances = cdist([charging_station], route, 'euclidean')
     return np.argmin(distances)
 
 
-def get_intersection_points(route, points):
+def get_intersection_points(route, charging_stations):
     """
-    Determines the closest points on the route for each point.
+    Determines the closest point on the route for each charging station.
 
     Parameters:
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
-    - points (np.ndarray): Array of (x, y) coordinates of the points.
+    - charging_stations (np.ndarray): Array of (x, y) coordinates of the charging_stations.
 
     Returns:
-    - intersections (list): List of tuples containing point index, coordinates, and closest route point index.
+    - intersections (list): List of tuples containing charging station index,
+     coordinates, and closest route point index.
     """
     intersections = []
-    for idx, point in enumerate(points):
-        closest_idx = closest_point(route, point)
-        intersections.append((idx, point, closest_idx))
+    for idx, charging_station in enumerate(charging_stations):
+        closest_idx = closest_point(route, charging_station)
+        intersections.append((idx, charging_station, closest_idx))
     return intersections
 
 
