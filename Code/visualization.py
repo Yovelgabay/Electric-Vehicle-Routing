@@ -415,7 +415,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     ax.grid(True)
     # ax.legend()
 
-    # Add a color bar to indicate penalty values
+    # Add a color bar to indicate penalty valuess
     if not hasattr(ax, 'cbar') or ax.cbar is None:
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
