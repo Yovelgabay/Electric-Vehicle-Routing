@@ -369,28 +369,31 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
                             queueing_time, distances, starting_point_index, points_to_add):
     ax.clear()
 
-    # Highlight the chosen charging stations.
     # Define custom colormap ranging from green to red
     cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
 
     # Normalize queueing_time for color mapping
     norm = Normalize(vmin=min(queueing_time), vmax=max(queueing_time))
 
-    # Get chosen charging_stations and their queueing_time
+    # Scatter all charging stations with a default color
+    ax.scatter(charging_stations[:, 0], charging_stations[:, 1], color='gray', alpha=0.5, s=50, zorder=4,
+               label='Charging Stations')
+
+    # Highlight the chosen charging stations
     chosen_charging_stations = charging_stations[best_charging_stations]
     chosen_queueing_time = [queueing_time[idx] for idx in best_charging_stations]
 
-    # Scatter chosen charging_stations with color based on queueing_time
-    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)), s=100, zorder=5,
-                    label='Chosen Charging Stations')
+    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)),
+                    s=100, zorder=5, label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_charging_stations):
-        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add }', fontsize=12, color='gold')
+        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add}', fontsize=12, color='gold')
 
     # Plot connections only to the chosen stations
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
-        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-', linewidth=2)
+        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-',
+                linewidth=2)
         mid_x = (route[end][0] + charging_stations[start][0]) / 2
         mid_y = (route[end][1] + charging_stations[start][1]) / 2
         segment_length = np.linalg.norm(route[end] - charging_stations[start])
@@ -415,7 +418,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     ax.grid(True)
     # ax.legend()
 
-    # Add a color bar to indicate penalty valuess
+    # Add a color bar to indicate penalty values
     if not hasattr(ax, 'cbar') or ax.cbar is None:
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
@@ -427,8 +430,8 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
 def visualize_all_routes(best_routes):
     fig, ax = plt.subplots(figsize=(10, 8))
-    for starting_point_index, (route, charging_stations, best_charging_stations, connections, queueing_time, distances,points_to_add) in enumerate(best_routes):
+    for starting_point_index, (route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add) in enumerate(best_routes):
         update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                                 connections, queueing_time, distances, starting_point_index, points_to_add)
-        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)!
+        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)
     plt.show()
