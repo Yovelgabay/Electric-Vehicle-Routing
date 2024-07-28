@@ -41,21 +41,21 @@ def plot_centroids_and_route(centroids, route, closest_centroids):
     plt.show()
 
 
-def visualize_route(points, route, title, penalties, connections=None, distances=None,
+def visualize_route(charging_stations, route, title, queueing_time, connections=None, distances=None,
                     points_diff=0, route_diff=0):
     """
-    Visualizes the route and charging stations with penalties color mapping.
+    Visualizes the route and charging stations with queueing_time color mapping.
 
     Parameters:
-    - points (np.ndarray): Array of (x, y) coordinates of the points.
+    - charging_stations (np.ndarray): Array of (x, y) coordinates of the charging_stations.
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
     - title (str): Title of the plot.
-    - penalties (np.ndarray): Array of penalties associated with each point.
-    - connections (list): List of tuples defining connections between points and route segments.
+    - queueing_time (np.ndarray): Array of queueing_time associated with each point.
+    - connections (list): List of tuples defining connections between charging_stations and route segments.
     - distances (list): List of distances between consecutive route points.
 
     Displays:
-    - A plot showing the route, points, penalties, and connections.
+    - A plot showing the route, charging_stations, queueing_time, and connections.
     """
     if distances is None:
         distances = []
@@ -70,19 +70,19 @@ def visualize_route(points, route, title, penalties, connections=None, distances
     # Define custom colormap ranging from green to red
     cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
 
-    # Normalize penalties for color mapping
-    norm = Normalize(vmin=penalties.min(), vmax=penalties.max())
+    # Normalize queueing_time for color mapping
+    norm = Normalize(vmin=queueing_time.min(), vmax=queueing_time.max())
 
-    # Scatter points with color mapped based on penalties
-    sc = plt.scatter(points[:, 0], points[:, 1], c=penalties, cmap=cmap, norm=norm, label='Charging Stations',
-                     edgecolor='black')
+    # Scatter charging_stations with color mapped based on queueing_time
+    sc = plt.scatter(charging_stations[:, 0], charging_stations[:, 1], c=queueing_time, cmap=cmap,
+                     norm=norm, label='Charging Stations', edgecolor='black')
 
     # Add colorbar to indicate penalty scale
     cbar = plt.colorbar(sc)
-    cbar.set_label('Penalties')
+    cbar.set_label('queueing_time')
 
     # Annotate each point
-    for i, (x, y) in enumerate(points):
+    for i, (x, y) in enumerate(charging_stations):
         plt.text(x + 0.5, y + 0.5, f'{i}', fontsize=12, color='black')
 
     # Annotate distances between route points if distances are provided
@@ -94,8 +94,8 @@ def visualize_route(points, route, title, penalties, connections=None, distances
 
     # Plot connections
     for start, end in connections:
-        plt.plot([points[start - points_diff][0], route[end - route_diff][0]],
-                 [points[start - points_diff][1], route[end - route_diff][1]], 'k--')
+        plt.plot([charging_stations[start - points_diff][0], route[end - route_diff][0]],
+                 [charging_stations[start - points_diff][1], route[end - route_diff][1]], 'k--')
 
     # Set the limits of the plot
     plt.xlim(-2, 102)
@@ -109,7 +109,7 @@ def visualize_route(points, route, title, penalties, connections=None, distances
     plt.show()
 
 
-def closest_point(route, point):
+def closest_point(route, charging_station):
     """
     Finds the closest point on the route to the given point.
 
@@ -120,19 +120,19 @@ def closest_point(route, point):
     Returns:
     - int: Index of the closest point on the route.
     """
-    distances = cdist([point], route, 'euclidean')
+    distances = cdist([charging_station], route, 'euclidean')
     return np.argmin(distances)
 
 
-def demonstrate_chosen_route(route, points, best_route_indices, connections, title, distances):
+def demonstrate_chosen_route(route, charging_stations, best_route_indices, connections, title, distances):
     """
     Visualizes the chosen route and charging stations.
 
     Parameters:
     - route (np.ndarray): Array of (x, y) coordinates defining the route.
-    - points (np.ndarray): Array of (x, y) coordinates of the points.
+    - charging_stations (np.ndarray): Array of (x, y) coordinates of the charging_stations.
     - best_route_indices (list): List of indices representing the best route.
-    - connections (list): List of tuples defining connections between points and route segments.
+    - connections (list): List of tuples defining connections between charging_stations and route segments.
     - title (str): Title of the plot.
     - distances (list): List of distances between consecutive route points.
 
@@ -142,20 +142,20 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
     plt.figure(figsize=(10, 8))
 
     # Highlight the chosen charging stations.
-    chosen_points = points[best_route_indices]
-    plt.scatter(chosen_points[:, 0], chosen_points[:, 1], color='blue', s=100, zorder=5,
+    chosen_charging_stations = charging_stations[best_route_indices]
+    plt.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], color='blue', s=100, zorder=5,
                 label='Chosen Charging Stations')
 
-    for i, (x, y) in enumerate(chosen_points):
+    for i, (x, y) in enumerate(chosen_charging_stations):
         plt.text(x + 0.5, y + 0.5, f'{best_route_indices[i]}', fontsize=12, color='gold')
 
     # Plot connections only to the chosen stations
-    chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_route_indices]
+    chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_route_indices]
     for start, end in chosen_connections:
-        plt.plot([route[end][0], points[start][0]], [route[end][1], points[start][1]], 'r-', linewidth=2)
-        mid_x = (route[end][0] + points[start][0]) / 2
-        mid_y = (route[end][1] + points[start][1]) / 2
-        segment_length = np.linalg.norm(route[end] - points[start])
+        plt.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-', linewidth=2)
+        mid_x = (route[end][0] + charging_stations[start][0]) / 2
+        mid_y = (route[end][1] + charging_stations[start][1]) / 2
+        segment_length = np.linalg.norm(route[end] - charging_stations[start])
         plt.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
 
     # Plot the entire route and annotate all segment lengths
@@ -179,41 +179,41 @@ def demonstrate_chosen_route(route, points, best_route_indices, connections, tit
 
 
 # Function to print waiting time for each stop
-def print_waiting_times(best_charging_stations, points_matrix, labels, starting_point_cluster,
-                        average_waiting_time, penalties):
+def print_waiting_times(best_charging_stations, charging_stations_matrix, labels, starting_point_cluster,
+                        average_waiting_time, queueing_time):
     for stop_index in best_charging_stations:
-        stop_id, (x, y), _ = points_matrix[stop_index]
+        stop_id, (x, y), _ = charging_stations_matrix[stop_index]
         cluster = labels[stop_index]
         if cluster == starting_point_cluster:
-            waiting_time = penalties[stop_index]  # Use real waiting time
+            waiting_time = queueing_time[stop_index]  # Use real waiting time
         else:
             waiting_time = average_waiting_time  # Use average waiting time
         print(f"CS {stop_index}: Waiting Time = {waiting_time:.2f}")
 
 
-def visualize_clustering(num_clusters, points, labels, centroids):
-    # Visualize the clustered points
+def visualize_clustering(num_clusters, charging_stations, labels, centroids):
+    # Visualize the clustered charging_stations
     plt.figure(figsize=(8, 6))
     cmap = plt.cm.get_cmap('tab10')
 
     for i in range(num_clusters):
-        cluster_points = points[labels == i]
-        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], color=cmap(i), marker='o', label=f'Cluster {i + 1}')
+        cluster_charging_stations = charging_stations[labels == i]
+        plt.scatter(cluster_charging_stations[:, 0], cluster_charging_stations[:, 1], color=cmap(i), marker='o', label=f'Cluster {i + 1}')
         plt.scatter(centroids[i, 0], centroids[i, 1], color='black', marker='x', s=100, linewidths=3)
 
-    plt.title('K-Means Clustering of Random Points')
+    plt.title('K-Means Clustering of Random Charging Stations')
     plt.xlabel('X Coordinate')
     plt.ylabel('Y Coordinate')
     plt.legend()
     plt.grid(True)
     plt.show()
 
-    # # Print points and their assigned clusters
-    # for i, (point, label) in enumerate(zip(points, labels)):
+    # # Print charging_stations and their assigned clusters
+    # for i, (point, label) in enumerate(zip(charging_stations, labels)):
     #     print(f'Point {i}: ({point[0]:.2f}, {point[1]:.2f}) - Cluster {label + 1}')
 
 
-def print_segment_lengths(route, connections, best_charging_stations, points):
+def print_segment_lengths(route, connections, best_charging_stations, charging_stations):
     # If there are no charging stations selected, print total route distance and return
     if not best_charging_stations:
         total_distance = sum(np.linalg.norm(route[i + 1] - route[i]) for i in range(len(route) - 1))
@@ -222,7 +222,7 @@ def print_segment_lengths(route, connections, best_charging_stations, points):
     # Calculate distances from charging stations to the closest route points
     distances = []
     for stop_index in best_charging_stations:
-        _, (x, y), _ = points[stop_index]
+        _, (x, y), _ = charging_stations[stop_index]
         closest_route_index = closest_point(route, (x, y))
         min_distance = np.hypot(x - route[closest_route_index][0], y - route[closest_route_index][1])
         distances.append(min_distance)
@@ -268,18 +268,18 @@ def print_segment_lengths(route, connections, best_charging_stations, points):
                   f"{best_charging_stations[i - 1]} to the endpoint is: {segments_lengths[i]:.2f}")
 
 
-def update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties, generation):
+def update_plot(ax, route, charging_stations, best_charging_stations, connections, route_points_distances, queueing_time, generation):
     """
     Update the plot with the best route and charging stations at each generation.
 
     Parameters:
     - ax: Matplotlib axis object.
     - route: Array of (x, y) coordinates defining the route.
-    - points: Array of (x, y) coordinates of the points.
+    - charging_stations: Array of (x, y) coordinates of the charging_stations
     - best_charging_stations: List of indices representing the best charging stations.
-    - connections: List of tuples defining connections between points and route segments.
-    - distances_between_points: List of distances between consecutive route points.
-    - penalties: Array of penalty values for each charging station.
+    - connections: List of tuples defining connections between charging_stations and route segments.
+    - route_points_distances: List of distances between consecutive route points.
+    - queueing_time: Array of penalty values for each charging station.
     - generation: Current generation number for display.
     """
     ax.clear()
@@ -288,26 +288,26 @@ def update_plot(ax, route, points, best_charging_stations, connections, distance
     # Define custom colormap ranging from green to red
     cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
 
-    # Normalize penalties for color mapping
-    norm = Normalize(vmin=min(penalties), vmax=max(penalties))
+    # Normalize queueing_time for color mapping
+    norm = Normalize(vmin=min(queueing_time), vmax=max(queueing_time))
 
-    # Get chosen points and their penalties
-    chosen_points = points[best_charging_stations]
-    chosen_penalties = penalties[best_charging_stations]
+    # Get chosen charging_stations and their queueing_time
+    chosen_charging_stations = charging_stations[best_charging_stations]
+    chosen_queueing_time = queueing_time[best_charging_stations]
 
-    # Scatter chosen points with color based on penalties
-    sc = ax.scatter(chosen_points[:, 0], chosen_points[:, 1], c=cmap(norm(chosen_penalties)), s=100, zorder=5,
+    # Scatter chosen charging_stations with color based on queueing_time
+    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)), s=100, zorder=5,
                     label='Chosen Charging Stations')
 
-    for i, (x, y) in enumerate(chosen_points):
+    for i, (x, y) in enumerate(chosen_charging_stations):
         ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i]}', fontsize=12, color='gold')
 
-    chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_charging_stations]
+    chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
-        ax.plot([route[end][0], points[start][0]], [route[end][1], points[start][1]], 'r-', linewidth=2)
-        mid_x = (route[end][0] + points[start][0]) / 2
-        mid_y = (route[end][1] + points[start][1]) / 2
-        segment_length = np.linalg.norm(route[end] - points[start])
+        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-', linewidth=2)
+        mid_x = (route[end][0] + charging_stations[start][0]) / 2
+        mid_y = (route[end][1] + charging_stations[start][1]) / 2
+        segment_length = np.linalg.norm(route[end] - charging_stations[start])
         ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
 
     ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
@@ -316,7 +316,7 @@ def update_plot(ax, route, points, best_charging_stations, connections, distance
     for i in range(len(route) - 1):
         mid_x = (route[i, 0] + route[i + 1, 0]) / 2
         mid_y = (route[i, 1] + route[i + 1, 1]) / 2
-        ax.text(mid_x, mid_y, f'{distances_between_points[i]:.2f}', fontsize=10, color='black')
+        ax.text(mid_x, mid_y, f'{route_points_distances[i]:.2f}', fontsize=10, color='black')
 
     # Add generation number text at the top middle
     ax.text(0.5, 0.95, f'Generation: {generation}', transform=ax.transAxes, fontsize=14,
@@ -341,59 +341,59 @@ def update_plot(ax, route, points, best_charging_stations, connections, distance
         ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
 
 
-def visualize_best_route_animation(route, points, generations_data, connections, distances_between_points,
-                                   penalties, interval=500):
+def visualize_best_route_animation(route, charging_stations, generations_data, connections, route_points_distances,
+                                   queueing_time, interval=500):
     """
     Visualize the best route at each generation using animation.
 
     Parameters:
     - route: Array of (x, y) coordinates defining the route.
-    - points: Array of (x, y) coordinates of the points.
+    - charging_stations: Array of (x, y) coordinates of the charging_stations.
     - generations_data: List of best charging stations for each generation.
-    - connections: List of tuples defining connections between points and route segments.
-    - distances_between_points: List of distances between consecutive route points.
+    - connections: List of tuples defining connections between charging_stations and route segments.
+    - route_points_distances: List of distances between consecutive route points.
     - interval: Time interval between frames in milliseconds.
     """
     fig, ax = plt.subplots(figsize=(10, 8))
 
     def update(frame):
         best_charging_stations = generations_data[frame]
-        update_plot(ax, route, points, best_charging_stations, connections, distances_between_points, penalties,frame)
+        update_plot(ax, route, charging_stations, best_charging_stations, connections, route_points_distances, queueing_time,frame)
         return ax
 
     ani = FuncAnimation(fig, update, frames=len(generations_data), interval=interval, repeat=False)
     plt.show()
 
 
-def update_plot_for_dynamic(ax, route, points, best_charging_stations, connections,
-                            penalties, distances, starting_point_index, points_to_add):
+def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations, connections,
+                            queueing_time, distances, starting_point_index, points_to_add):
     ax.clear()
 
     # Highlight the chosen charging stations.
     # Define custom colormap ranging from green to red
     cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
 
-    # Normalize penalties for color mapping
-    norm = Normalize(vmin=min(penalties), vmax=max(penalties))
+    # Normalize queueing_time for color mapping
+    norm = Normalize(vmin=min(queueing_time), vmax=max(queueing_time))
 
-    # Get chosen points and their penalties
-    chosen_points = points[best_charging_stations]
-    chosen_penalties = [penalties[idx] for idx in best_charging_stations]
+    # Get chosen charging_stations and their queueing_time
+    chosen_charging_stations = charging_stations[best_charging_stations]
+    chosen_queueing_time = [queueing_time[idx] for idx in best_charging_stations]
 
-    # Scatter chosen points with color based on penalties
-    sc = ax.scatter(chosen_points[:, 0], chosen_points[:, 1], c=cmap(norm(chosen_penalties)), s=100, zorder=5,
+    # Scatter chosen charging_stations with color based on queueing_time
+    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)), s=100, zorder=5,
                     label='Chosen Charging Stations')
 
-    for i, (x, y) in enumerate(chosen_points):
+    for i, (x, y) in enumerate(chosen_charging_stations):
         ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add }', fontsize=12, color='gold')
 
     # Plot connections only to the chosen stations
-    chosen_connections = [(idx, closest_point(route, points[idx])) for idx in best_charging_stations]
+    chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
-        ax.plot([route[end][0], points[start][0]], [route[end][1], points[start][1]], 'r-', linewidth=2)
-        mid_x = (route[end][0] + points[start][0]) / 2
-        mid_y = (route[end][1] + points[start][1]) / 2
-        segment_length = np.linalg.norm(route[end] - points[start])
+        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-', linewidth=2)
+        mid_x = (route[end][0] + charging_stations[start][0]) / 2
+        mid_y = (route[end][1] + charging_stations[start][1]) / 2
+        segment_length = np.linalg.norm(route[end] - charging_stations[start])
         ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
 
     # Plot the entire route and annotate all segment lengths
@@ -413,7 +413,7 @@ def update_plot_for_dynamic(ax, route, points, best_charging_stations, connectio
     ax.set_xlabel('X Coordinate')
     ax.set_ylabel('Y Coordinate')
     ax.grid(True)
-    ax.legend()
+    # ax.legend()
 
     # Add a color bar to indicate penalty values
     if not hasattr(ax, 'cbar') or ax.cbar is None:
@@ -427,8 +427,8 @@ def update_plot_for_dynamic(ax, route, points, best_charging_stations, connectio
 
 def visualize_all_routes(best_routes):
     fig, ax = plt.subplots(figsize=(10, 8))
-    for starting_point_index, (route, points, best_charging_stations, connections, penalties, distances,points_to_add) in enumerate(best_routes):
-        update_plot_for_dynamic(ax, route, points, best_charging_stations,
-                                connections, penalties, distances, starting_point_index,points_to_add)
+    for starting_point_index, (route, charging_stations, best_charging_stations, connections, queueing_time, distances,points_to_add) in enumerate(best_routes):
+        update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
+                                connections, queueing_time, distances, starting_point_index, points_to_add)
         plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)!
     plt.show()

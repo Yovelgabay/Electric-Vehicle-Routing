@@ -2,7 +2,7 @@ import numpy as np
 import random
 import copy
 
-from Code.parameters import AVERAGE_WAITING_TIME
+from Code.parameters import AVERAGE_QUEUEING_TIME
 
 
 def point_to_point_distance(px, py, qx, qy):
@@ -23,7 +23,7 @@ def calculate_distances_of_cs(points_with_ids, route):
     return min_distances
 
 
-def check_validity(chromosome, connections, distances, ev_capacity, route_distances,initial_ev_capacity):
+def check_validity(chromosome, connections, distances, ev_capacity, route_distances, initial_ev_capacity):
     total_distance = 0
 
     # Calculate the distance from the start point to the first charging station
@@ -92,18 +92,17 @@ def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, in
     return total_excess_km
 
 
-
-
-def fitness_function(chromosome, connections, distances, penalties, ev_capacity, initial_ev_capacity, route_distances, labels,
+def fitness_function(chromosome, connections, distances, queueing_time, ev_capacity, initial_ev_capacity,
+                     route_distances, labels,
                      starting_point_cluster):
     exceeded_km = 0
-    if not check_validity(chromosome, connections, distances, ev_capacity, route_distances,initial_ev_capacity):
+    if not check_validity(chromosome, connections, distances, ev_capacity, route_distances, initial_ev_capacity):
         exceeded_km = 200 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
                                                           initial_ev_capacity, route_distances)
 
     total_distance = sum(distances[stop] for stop in chromosome)
     total_penalty = sum(
-        penalties[stop] if labels[stop] == starting_point_cluster else AVERAGE_WAITING_TIME
+        queueing_time[stop] if labels[stop] == starting_point_cluster else AVERAGE_QUEUEING_TIME
         for stop in chromosome
     )
     stop_penalty = len(chromosome) * 10
@@ -130,7 +129,6 @@ def tournament_selection(population, fitnesses, tournament_size):
 
 
 def crossover(parent1, parent2):
-    size1, size2 = len(parent1), len(parent2)
     set1 = set(parent1)
     set2 = set(parent2)
     common_nodes = list(set1 & set2 - set([parent1[0], parent1[-1], parent2[0], parent2[-1]]))
@@ -196,6 +194,7 @@ def mutate(route, points_with_ids, mutation_rate):
 
     route1 = copy.deepcopy(route)
     route2 = copy.deepcopy(route)
+    # if there is only one cs in the route then change it to a different valid cs
     if len(route) == 1:
         possible_stations_to_add = [i for i in range(len(points_with_ids)) if i not in route]
         if possible_stations_to_add:
@@ -272,10 +271,12 @@ def initialize_population(points_with_ids, population_size):
 '''
 
 
-def evaluate_population(population, connections, distances_CS, penalties, ev_capacity, initial_ev_capacity, distances_between_points, labels,
+def evaluate_population(population, connections, distances_CS, queueing_time, ev_capacity, initial_ev_capacity,
+                        route_points_distances, labels,
                         starting_point_cluster):
     fitnesses = [
-        fitness_function(route, connections, distances_CS, penalties, ev_capacity, initial_ev_capacity, distances_between_points, labels,
+        fitness_function(route, connections, distances_CS, queueing_time, ev_capacity, initial_ev_capacity,
+                         route_points_distances, labels,
                          starting_point_cluster)
         for route in population
     ]
@@ -287,17 +288,20 @@ def evaluate_population(population, connections, distances_CS, penalties, ev_cap
 
     return sorted_routes, sorted_fitnesses
 
+
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
-                      penalties, ev_capacity, initial_ev_capacity, distances_between_points, max_stagnation, labels, starting_point_cluster):
-    total_route_distance = np.sum(distances_between_points)
+                      queueing_time, ev_capacity, initial_ev_capacity, route_points_distances, max_stagnation, labels,
+                      starting_point_cluster):
+    total_route_distance = np.sum(route_points_distances)
     if initial_ev_capacity > total_route_distance:
         return [], 1, []
 
-    distances_CS = calculate_distances_of_cs(points_with_ids, route_points)
+    distances_cs = calculate_distances_of_cs(points_with_ids, route_points)
 
     population = initialize_population(points_with_ids, population_size)
-    evaluated_population, fitnesses = evaluate_population(population, connections, distances_CS, penalties,
-                                                          ev_capacity, initial_ev_capacity, distances_between_points, labels,
+    evaluated_population, fitnesses = evaluate_population(population, connections, distances_cs, queueing_time,
+                                                          ev_capacity, initial_ev_capacity, route_points_distances,
+                                                          labels,
                                                           starting_point_cluster)
 
     best_fitness = fitnesses[0]
@@ -317,8 +321,9 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
 
             next_population.extend([mutated_child1a, mutated_child1b, mutated_child2a, mutated_child2b])
 
-        evaluated_population, fitnesses = evaluate_population(next_population, connections, distances_CS, penalties,
-                                                              ev_capacity, initial_ev_capacity, distances_between_points, labels,
+        evaluated_population, fitnesses = evaluate_population(next_population, connections, distances_cs, queueing_time,
+                                                              ev_capacity, initial_ev_capacity, route_points_distances,
+                                                              labels,
                                                               starting_point_cluster)
 
         current_best_fitness = fitnesses[0]
