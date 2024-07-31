@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.widgets import Button
 from scipy.spatial.distance import cdist
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
@@ -152,7 +153,8 @@ def demonstrate_chosen_route(route, charging_stations, best_route_indices, conne
     # Plot connections only to the chosen stations
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_route_indices]
     for start, end in chosen_connections:
-        plt.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-', linewidth=2)
+        plt.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-',
+                 linewidth=2)
         mid_x = (route[end][0] + charging_stations[start][0]) / 2
         mid_y = (route[end][1] + charging_stations[start][1]) / 2
         segment_length = np.linalg.norm(route[end] - charging_stations[start])
@@ -198,7 +200,8 @@ def visualize_clustering(num_clusters, charging_stations, labels, centroids):
 
     for i in range(num_clusters):
         cluster_charging_stations = charging_stations[labels == i]
-        plt.scatter(cluster_charging_stations[:, 0], cluster_charging_stations[:, 1], color=cmap(i), marker='o', label=f'Cluster {i + 1}')
+        plt.scatter(cluster_charging_stations[:, 0], cluster_charging_stations[:, 1], color=cmap(i), marker='o',
+                    label=f'Cluster {i + 1}')
         plt.scatter(centroids[i, 0], centroids[i, 1], color='black', marker='x', s=100, linewidths=3)
 
     plt.title('K-Means Clustering of Random Charging Stations')
@@ -268,7 +271,8 @@ def print_segment_lengths(route, connections, best_charging_stations, charging_s
                   f"{best_charging_stations[i - 1]} to the endpoint is: {segments_lengths[i]:.2f}")
 
 
-def update_plot(ax, route, charging_stations, best_charging_stations, connections, route_points_distances, queueing_time, generation):
+def update_plot(ax, route, charging_stations, best_charging_stations, connections, route_points_distances,
+                queueing_time, generation):
     """
     Update the plot with the best route and charging stations at each generation.
 
@@ -296,7 +300,8 @@ def update_plot(ax, route, charging_stations, best_charging_stations, connection
     chosen_queueing_time = queueing_time[best_charging_stations]
 
     # Scatter chosen charging_stations with color based on queueing_time
-    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)), s=100, zorder=5,
+    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)),
+                    s=100, zorder=5,
                     label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_charging_stations):
@@ -304,7 +309,8 @@ def update_plot(ax, route, charging_stations, best_charging_stations, connection
 
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
-        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-', linewidth=2)
+        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-',
+                linewidth=2)
         mid_x = (route[end][0] + charging_stations[start][0]) / 2
         mid_y = (route[end][1] + charging_stations[start][1]) / 2
         segment_length = np.linalg.norm(route[end] - charging_stations[start])
@@ -358,15 +364,18 @@ def visualize_best_route_animation(route, charging_stations, generations_data, c
 
     def update(frame):
         best_charging_stations = generations_data[frame]
-        update_plot(ax, route, charging_stations, best_charging_stations, connections, route_points_distances, queueing_time,frame)
+        update_plot(ax, route, charging_stations, best_charging_stations, connections, route_points_distances,
+                    queueing_time, frame)
         return ax
 
     ani = FuncAnimation(fig, update, frames=len(generations_data), interval=interval, repeat=False)
     plt.show()
 
 
+# Function to update the plot for dynamic visualization
 def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations, connections,
-                            queueing_time, distances, starting_point_index, points_to_add):
+                            queueing_time, distances, starting_point_index, points_to_add, subset_labels,
+                            subset_centroids, starting_point_cluster):
     ax.clear()
 
     # Define custom colormap ranging from green to red
@@ -374,10 +383,6 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
     # Normalize queueing_time for color mapping
     norm = Normalize(vmin=min(queueing_time), vmax=max(queueing_time))
-
-    # Scatter all charging stations with a default color
-    ax.scatter(charging_stations[:, 0], charging_stations[:, 1], color='gray', alpha=0.5, s=50, zorder=4,
-               label='Charging Stations')
 
     # Highlight the chosen charging stations
     chosen_charging_stations = charging_stations[best_charging_stations]
@@ -409,29 +414,60 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         ax.text(mid_x, mid_y, f'{distances[i]:.2f}', fontsize=10, color='black')
 
     # Set the limits of the plot
-    plt.xlim(-2, 102)
-    plt.ylim(-2, 102)
+    ax.set_xlim(-2, 102)
+    ax.set_ylim(-2, 102)
 
     ax.set_title(f'Route Visualization - Starting Point Index: {starting_point_index}')
     ax.set_xlabel('X Coordinate')
     ax.set_ylabel('Y Coordinate')
     ax.grid(True)
-    # ax.legend()
 
-    # Add a color bar to indicate penalty values
+    # Add a color bar to indicate queueing times, placing it outside the plot area
     if not hasattr(ax, 'cbar') or ax.cbar is None:
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
-        ax.cbar = plt.colorbar(sm, ax=ax)
-        ax.cbar.set_label('Waiting time at CS')
+        cbar = plt.colorbar(sm, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label('Queueing Time at CS')
+        ax.cbar = cbar
     else:
         ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
 
 
-def visualize_all_routes(best_routes):
+# Function to visualize all routes and add button control
+def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters):
     fig, ax = plt.subplots(figsize=(10, 8))
-    for starting_point_index, (route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add) in enumerate(best_routes):
+
+    # Initialize index for starting point
+    current_index = 0
+
+    def next_plot(event):
+        nonlocal current_index
+        current_index = (current_index + 1) % len(best_routes)
+        route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add = \
+            best_routes[current_index]
+        subset_labels = labels[points_to_add:]
+        subset_centroids = centroids
+        starting_point_cluster = starting_point_clusters[current_index]
         update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
-                                connections, queueing_time, distances, starting_point_index, points_to_add)
-        plt.pause(2)  # Pause to display the update (adjust the pause duration as needed)
+                                connections, queueing_time, distances, current_index, points_to_add,
+                                subset_labels, subset_centroids, starting_point_cluster)
+        plt.draw()
+
+    # Initial plot
+    route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add = \
+        best_routes[current_index]
+    subset_labels = labels[points_to_add:]
+    subset_centroids = centroids
+    starting_point_cluster = starting_point_clusters[current_index]
+    update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
+                            connections, queueing_time, distances, current_index, points_to_add,
+                            subset_labels, subset_centroids, starting_point_cluster)
+
+    # Create a button and set its position
+    ax_button = plt.axes([0.8, 0.01, 0.1, 0.05])
+    button = Button(ax_button, 'Next')
+
+    # Bind the button click event to the next_plot function
+    button.on_clicked(next_plot)
+
     plt.show()

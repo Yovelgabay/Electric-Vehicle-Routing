@@ -60,18 +60,22 @@ def check_validity(chromosome, connections, distances, ev_capacity, route_distan
     return True
 
 
-def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, initial_ev_capacity, route_distances):
+def calculate_exceeded_kilometers(chromosome, connections, distances,
+                                  ev_capacity, initial_ev_capacity, route_distances, penalty_factor):
+    if check_validity(chromosome, connections, distances, ev_capacity, route_distances, initial_ev_capacity):
+        return 0
+
     total_excess_km = 0
 
     # Calculate the distance from the start point to the first charging station
-    start_to_first = sum(route_distances[:connections[route[0]][1]]) + distances[route[0]]
+    start_to_first = sum(route_distances[:connections[chromosome[0]][1]]) + distances[chromosome[0]]
     if start_to_first > initial_ev_capacity:
         total_excess_km += start_to_first - initial_ev_capacity
 
     # Calculate distances between consecutive charging stations
-    for i in range(len(route) - 1):
-        start_station = route[i]
-        end_station = route[i + 1]
+    for i in range(len(chromosome) - 1):
+        start_station = chromosome[i]
+        end_station = chromosome[i + 1]
 
         dist_to_route = distances[start_station]
         route_distance = sum(route_distances[connections[start_station][1]:connections[end_station][1]])
@@ -83,31 +87,29 @@ def calculate_exceeded_kilometers(route, connections, distances, ev_capacity, in
             total_excess_km += segment_distance - ev_capacity
 
     # Calculate the distance from the last charging station to the destination
-    last_station_idx = route[-1]
+    last_station_idx = chromosome[-1]
     route_to_end = sum(route_distances[connections[last_station_idx][1]:])
     last_to_end = route_to_end + distances[last_station_idx]
     if last_to_end > ev_capacity:
         total_excess_km += last_to_end - ev_capacity
 
-    return total_excess_km
+    return total_excess_km * penalty_factor
 
 
 def fitness_function(chromosome, connections, distances, queueing_time, ev_capacity, initial_ev_capacity,
                      route_distances, labels,
                      starting_point_cluster):
-    exceeded_km = 0
-    if not check_validity(chromosome, connections, distances, ev_capacity, route_distances, initial_ev_capacity):
-        exceeded_km = 200 * calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
-                                                          initial_ev_capacity, route_distances)
+    exceeded_km = calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
+                                                initial_ev_capacity, route_distances, penalty_factor=200)
 
     total_distance = sum(distances[stop] for stop in chromosome)
-    total_penalty = sum(
+    queueing_time_penalty = sum(
         queueing_time[stop] if labels[stop] == starting_point_cluster else AVERAGE_QUEUEING_TIME
         for stop in chromosome
     )
-    stop_penalty = len(chromosome) * 10
-    return 1 / (total_distance + total_penalty + stop_penalty + exceeded_km) \
-        if total_distance + total_penalty + stop_penalty + exceeded_km > 0 else 0.000000000001
+    stops_penalty = 0  # used to calculated like this = len(chromosome) * 10 but I think its unnecessary now
+    return 1 / (total_distance + queueing_time_penalty + stops_penalty + exceeded_km) \
+        if total_distance + queueing_time_penalty + stops_penalty + exceeded_km > 0 else 0.000000000001
 
 
 def tournament_selection(population, fitnesses, tournament_size):
@@ -312,8 +314,8 @@ def genetic_algorithm(points_with_ids, route_points, connections, population_siz
     for generation in range(generations):
         next_population = []
         for _ in range(population_size // 4):
-            parent1 = tournament_selection(evaluated_population, fitnesses, tournament_size=5)
-            parent2 = tournament_selection(evaluated_population, fitnesses, tournament_size=5)
+            parent1 = tournament_selection(evaluated_population, fitnesses, tournament_size=6)
+            parent2 = tournament_selection(evaluated_population, fitnesses, tournament_size=6)
 
             child1, child2 = crossover(parent1, parent2)
             mutated_child1a, mutated_child1b = mutate(child1, points_with_ids, mutation_rate)
