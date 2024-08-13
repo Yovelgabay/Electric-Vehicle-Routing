@@ -392,21 +392,21 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
                     s=100, zorder=5, label='Chosen Charging Stations')
 
     for i, (x, y) in enumerate(chosen_charging_stations):
-        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add}', fontsize=12, color='gold')
+        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add}', fontsize=10, color='gold')
 
     # Plot connections only to the chosen stations
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
-        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-',
+        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], color='#FF5962',
                 linewidth=2)
         mid_x = (route[end][0] + charging_stations[start][0]) / 2
         mid_y = (route[end][1] + charging_stations[start][1]) / 2
         segment_length = np.linalg.norm(route[end] - charging_stations[start])
-        ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
+        ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='#221BDC')
 
     # Plot the entire route and annotate all segment lengths
     ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
-    ax.plot(route[:, 0], route[:, 1], 'green', linestyle='dashed', alpha=0.5)
+    ax.plot(route[:, 0], route[:, 1], color='#39A155', linestyle='dashed', alpha=0.5)
 
     for i in range(len(route) - 1):
         mid_x = (route[i, 0] + route[i + 1, 0]) / 2
@@ -465,7 +465,7 @@ def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters
 
     # Create a button and set its position
     ax_button = plt.axes([0.8, 0.01, 0.1, 0.05])
-    button = Button(ax_button, 'Next')
+    button = Button(ax_button, label='Next', hovercolor='#65806D')
 
     # Bind the button click event to the next_plot function
     button.on_clicked(next_plot)

@@ -5,11 +5,7 @@ import copy
 from Code.parameters import AVERAGE_QUEUEING_TIME
 
 
-def point_to_point_distance(px, py, qx, qy):
-    return np.hypot(px - qx, py - qy)
-
-
-def calculate_distances_of_cs(points_with_ids, route):
+def calculate_distances_of_cs2(points_with_ids, route):
     num_points = len(points_with_ids)
     num_route_points = len(route)
     min_distances = np.zeros(num_points)
@@ -17,9 +13,18 @@ def calculate_distances_of_cs(points_with_ids, route):
     for i, (_, (px, py), _) in enumerate(points_with_ids):
         distances = np.zeros(num_route_points)
         for j, (qx, qy) in enumerate(route):
-            distances[j] = point_to_point_distance(px, py, qx, qy)
+            distances[j] = np.hypot(px - qx, py - qy)
         min_distances[i] = distances.min()
 
+    return min_distances
+
+
+# faster than the original in 12 seconds
+def calculate_distances_of_cs(points_with_ids, route):
+    points_array = np.array([coords for _, coords, _ in points_with_ids])
+    route_array = np.array(route)
+    distances = np.sqrt(((points_array[:, np.newaxis] - route_array) ** 2).sum(axis=2))
+    min_distances = distances.min(axis=1)
     return min_distances
 
 
@@ -27,8 +32,7 @@ def check_validity(chromosome, connections, distances, ev_capacity, route_distan
     total_distance = 0
 
     # Calculate the distance from the start point to the first charging station
-    start_to_first = sum(route_distances[:connections[chromosome[0]][1]])
-    start_to_first += distances[chromosome[0]]
+    start_to_first = sum(route_distances[:connections[chromosome[0]][1]]) + distances[chromosome[0]]
     if start_to_first > initial_ev_capacity:
         return False
     total_distance += start_to_first
@@ -112,6 +116,26 @@ def fitness_function(chromosome, connections, distances, queueing_time, ev_capac
         if total_distance + queueing_time_penalty + stops_penalty + exceeded_km > 0 else 0.000000000001
 
 
+def final_fitness_function(chromosome, connections, distances, queueing_time, ev_capacity,
+                           initial_ev_capacity, route_distances):
+    # Calculate the exceeded kilometers based on the EV capacity and route distances
+    exceeded_km = calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
+                                                initial_ev_capacity, route_distances, penalty_factor=200)
+
+    # Calculate the total distance for the route
+    total_distance = sum(distances[stop] for stop in chromosome)
+
+    # Calculate the queueing time penalty using the real queueing time at the charging stations
+    queueing_time_penalty = sum(queueing_time[stop] for stop in chromosome)
+
+    # Stops penalty (optional, currently set to zero)
+    stops_penalty = 0  # You can modify this if necessary
+
+    # Calculate the fitness score
+    return 1 / (total_distance + queueing_time_penalty + stops_penalty + exceeded_km) \
+        if total_distance + queueing_time_penalty + stops_penalty + exceeded_km > 0 else 0.000000000001
+
+
 def tournament_selection(population, fitnesses, tournament_size):
     indices = list(range(len(population)))
 
@@ -133,7 +157,7 @@ def tournament_selection(population, fitnesses, tournament_size):
 def crossover(parent1, parent2):
     set1 = set(parent1)
     set2 = set(parent2)
-    common_nodes = list(set1 & set2 - set([parent1[0], parent1[-1], parent2[0], parent2[-1]]))
+    common_nodes = list(set1 & set2 - {parent1[0], parent1[-1], parent2[0], parent2[-1]})
     if not common_nodes:
         # Perform crossover without common nodes
         crossover_point = min(len(parent1), len(parent2)) // 2
@@ -253,10 +277,8 @@ def initialize_population(points_with_ids, population_size):
     # in the population
     for i in range(population_size - 2):
         num_stops = random.randint(1, num_points)  # Vary the number of stops
-        stops = sorted(random.sample(range(num_points), num_stops))
-        random_chromosome = stops
+        random_chromosome = sorted(random.sample(range(num_points), num_stops))
         population.append(random_chromosome)
-        # print(f"Random chromosome {i + 2}: {random_chromosome}")
     return population
 
 
