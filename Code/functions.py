@@ -30,7 +30,6 @@ def generate_route_with_checkpoints(num_points, scale, turn_amplitude, seed, che
 
     Parameters:
     - num_points (int): Number of points to generate along the route.
-    - scale (float): Scaling factor for the route dimensions.
     - turn_amplitude (float): Amplitude of the zigzag turns.
     - seed (int): Random seed for reproducibility.
     - checkpoints (list): List of checkpoints that the route must pass through.

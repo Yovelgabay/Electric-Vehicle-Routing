@@ -6,18 +6,19 @@ from Code.functions import (
     calculate_route_points_distances, generate_random_charging_stations_and_queueing_time,
     get_intersection_points, closest_point
 )
+from Code.visualization import visualize_all_routes, visualize_best_route_animation
 from GA import genetic_algorithm, calculate_distances_of_cs, final_fitness_function
 from kmeans import kmeans_clustering
 from parameters import *
-from visualization import visualize_all_routes
 
 
 def generate_initial_data():
     """Generate initial route, charging stations, and distances."""
     num_route_points = NUM_ROUTE_POINTS
-    route = generate_route_with_checkpoints(num_route_points, 100, 10, seed=53, checkpoints=CHECK_POINTS)
+    route = generate_route_with_checkpoints(
+        num_route_points, scale=100, turn_amplitude=10, seed=53, checkpoints=CHECK_POINTS)
     charging_stations_matrix, queueing_time = generate_random_charging_stations_and_queueing_time(
-        13, NUM_POINTS, 100, route
+        seed=13, num_points=NUM_POINTS, scale=100, route=route
     )
     route_points_distances = calculate_route_points_distances(route)
     charging_stations = np.array([charging_station[1] for charging_station in charging_stations_matrix])
@@ -118,6 +119,10 @@ def main():
 
     # Apply K-means clustering and assign clusters
     labels, centroids, assigned_points = kmeans_and_assign_clusters(route, charging_stations)
+    # _, _, generations_data = genetic_algorithm(charging_stations_matrix, NUM_ROUTE_POINTS, connections,
+    # POPULATION_SIZE, GENERATIONS, MUTATION_RATE, queueing_time, EV_CAPACITY, EV_CAPACITY, route_points_distances,
+    # MAX_STAGNATION, labels, 0) visualize_best_route_animation(route, charging_stations, generations_data,
+    # connections, route_points_distances, queueing_time, interval=1000)
 
     # Run the genetic algorithm and gather the best routes
     best_routes, final_chromosome = run_genetic_algorithm_for_each_start_point(

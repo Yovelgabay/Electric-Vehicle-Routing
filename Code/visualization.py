@@ -1,10 +1,14 @@
 import numpy as np
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, image as mpimg
 from matplotlib.animation import FuncAnimation
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib.widgets import Button
 from scipy.spatial.distance import cdist
 import matplotlib.cm as cm
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize, to_rgba
+
+from Code.parameters import EV_CAPACITY, POPULATION_SIZE, GENERATIONS, MUTATION_RATE, NUM_POINTS, MAX_STAGNATION, \
+    AVERAGE_QUEUEING_TIME
 
 
 def plot_centroids_and_route(centroids, route, closest_centroids):
@@ -388,10 +392,29 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     chosen_charging_stations = charging_stations[best_charging_stations]
     chosen_queueing_time = [queueing_time[idx] for idx in best_charging_stations]
 
-    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)),
-                    s=100, zorder=5, label='Chosen Charging Stations')
+    charging_station_logo = mpimg.imread('Code/CS5.png')
 
+    # Plot the charging station logo with corresponding penalty color
     for i, (x, y) in enumerate(chosen_charging_stations):
+        # Get the color based on the queueing time
+        color = to_rgba(cmap(norm(chosen_queueing_time[i])))  # Get the RGBA color
+
+        # Create a copy of the image to modify
+        colored_logo = charging_station_logo[:, :, :3].copy()  # Get the RGB channels
+        alpha_channel = charging_station_logo[:, :, 3]  # Get the alpha channel
+
+        # Apply the color only to the non-transparent (i.e., non-zero alpha) pixels
+        for c in range(3):  # Adjust each color channel based on the colormap color
+            colored_logo[:, :, c] = np.where(alpha_channel > 0, color[c], colored_logo[:, :, c])
+
+        # Combine the colored image with the original alpha channel
+        final_logo = np.dstack((colored_logo, alpha_channel))
+
+        # Create image box with the colored logo
+        imagebox = OffsetImage(final_logo, zoom=0.03, alpha=1)
+        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
+        ax.add_artist(ab)
+
         ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add}', fontsize=10, color='gold')
 
     # Plot connections only to the chosen stations
@@ -431,6 +454,22 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         ax.cbar = cbar
     else:
         ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
+
+    # Parameters to visualize
+    params = [
+        f'EV Capacity: {EV_CAPACITY}',
+        f'Population Size: {POPULATION_SIZE}',
+        f'Generations: {GENERATIONS}',
+        f'Mutation Rate: {MUTATION_RATE}',
+        f'Num Points: {NUM_POINTS}',
+        f'Average Queueing Time: {MAX_STAGNATION}',
+        f'Max Stagnation: {AVERAGE_QUEUEING_TIME}'
+    ]
+
+    # Add text above the title for parameters
+    param_text = ' | '.join(params)
+    ax.text(0.5, 1.10, param_text, transform=ax.transAxes, horizontalalignment='center',
+            fontsize=6, color='black', bbox=dict(facecolor='#C1C1C1', alpha=0.5))
 
 
 # Function to visualize all routes and add button control
