@@ -12,7 +12,7 @@ This project focuses on optimizing electric vehicle (EV) routing by combining K-
 
 Initially, we aimed to simplify the problem by clustering charging stations. Each route point was assigned to the nearest cluster of charging stations, with the genetic algorithm evaluating optimal stops. Charging stations within the same cluster as the current route point were assumed to have real queueing times, while those outside the cluster had average waiting times. This method enhances model realism by using actual data when route points are close to charging stations.
 
-We originally planned to determine the optimal number of clusters, \( K \), using the silhouette score. However, we found that clustering did not significantly reduce complexity and that the silhouette score suggested too few clusters. Therefore, we adjusted \( K \) to be the number of route points divided by 3, which demonstrated the dynamic features of our system while maintaining manageable complexity.
+We originally planned to determine the optimal number of clusters K using the silhouette score. However, we found that clustering did not significantly reduce complexity and that the silhouette score suggested too few clusters. Therefore, we adjusted K to be the number of route points divided by 3, which demonstrated the dynamic features of our system while maintaining manageable complexity.
 
 ---
 
