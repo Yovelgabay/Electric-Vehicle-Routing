@@ -94,20 +94,5 @@ The algorithm dynamically updates the route based on the EV’s current position
 
 We evaluated various algorithms for:
 - Selection operator
+- Crossover opreater
 - Mutation operator
-
-References:
-- A Genetic Algorithm for Shortest Path Routing Problem and the Sizing of Populations, Chang Wook Ahn, R. S. Ramakrishna
-
----
-
-## Notes
-
-- **K-Means Clustering:** Includes silhouette score evaluation and distance calculation between stations and route points.
-- **Route Adjustment:** Reflects the EV’s position and recalculates based on current conditions.
-
-Feel free to explore the repository and contact us with any questions or feedback.
-
----
-
-**GitHub Repository:** [Electric-Vehicle-Routing](https://github.com/Yovelgabay/Electric-Vehicle-Routing.git)
