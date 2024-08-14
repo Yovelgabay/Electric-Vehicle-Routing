@@ -6,6 +6,9 @@ from Code.parameters import AVERAGE_QUEUEING_TIME
 
 
 def calculate_distances_of_cs2(points_with_ids, route):
+    """
+    Calculate the minimum distance from each charging station to the nearest route point.
+    """
     num_points = len(points_with_ids)
     num_route_points = len(route)
     min_distances = np.zeros(num_points)
@@ -21,6 +24,9 @@ def calculate_distances_of_cs2(points_with_ids, route):
 
 # faster than the original in 12 seconds
 def calculate_distances_of_cs(points_with_ids, route):
+    """
+    Calculate the minimum distance from each charging station to the nearest route point.
+    """
     points_array = np.array([coords for _, coords, _ in points_with_ids])
     route_array = np.array(route)
     distances = np.sqrt(((points_array[:, np.newaxis] - route_array) ** 2).sum(axis=2))
@@ -29,6 +35,9 @@ def calculate_distances_of_cs(points_with_ids, route):
 
 
 def check_validity(chromosome, connections, distances, ev_capacity, route_distances, initial_ev_capacity):
+    """
+    Check if a chromosome's route is valid based on EV capacity constraints.
+    """
     total_distance = 0
 
     # Calculate the distance from the start point to the first charging station
@@ -66,6 +75,9 @@ def check_validity(chromosome, connections, distances, ev_capacity, route_distan
 
 def calculate_exceeded_kilometers(chromosome, connections, distances,
                                   ev_capacity, initial_ev_capacity, route_distances, penalty_factor):
+    """
+    Calculate the total distance exceeding the EV capacity for a given route.
+    """
     if check_validity(chromosome, connections, distances, ev_capacity, route_distances, initial_ev_capacity):
         return 0
 
@@ -101,23 +113,33 @@ def calculate_exceeded_kilometers(chromosome, connections, distances,
 
 
 def fitness_function(chromosome, connections, distances, queueing_time, ev_capacity, initial_ev_capacity,
-                     route_distances, labels,
-                     starting_point_cluster):
-    exceeded_km = calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
-                                                initial_ev_capacity, route_distances, penalty_factor=200)
+                     route_distances, labels, starting_point_cluster):
+    """
+    Evaluate the fitness of a chromosome based on total distance,
+    queueing time, and penalty for exceeding EV capacity.
+    """
+    exceeded_km = calculate_exceeded_kilometers(
+        chromosome, connections, distances, ev_capacity,
+        initial_ev_capacity, route_distances, penalty_factor=200
+    )
 
     total_distance = sum(distances[stop] for stop in chromosome)
     queueing_time_penalty = sum(
-        queueing_time[stop] if labels[stop] == starting_point_cluster else AVERAGE_QUEUEING_TIME
+        queueing_time[stop] if labels[stop] == starting_point_cluster
+        else AVERAGE_QUEUEING_TIME
         for stop in chromosome
     )
-    stops_penalty = 0  # used to calculated like this = len(chromosome) * 10 but I think its unnecessary now
-    return 1 / (total_distance + queueing_time_penalty + stops_penalty + exceeded_km) \
-        if total_distance + queueing_time_penalty + stops_penalty + exceeded_km > 0 else 0.000000000001
+
+    total_penalty = total_distance + queueing_time_penalty + exceeded_km
+    return 1 / total_penalty if total_penalty > 0 else 1e-12
 
 
 def final_fitness_function(chromosome, connections, distances, queueing_time, ev_capacity,
                            initial_ev_capacity, route_distances):
+    """
+    Calculate the final fitness score of a chromosome based on total distance,
+    queueing time, and penalty for exceeding EV capacity.
+    """
     # Calculate the exceeded kilometers based on the EV capacity and route distances
     exceeded_km = calculate_exceeded_kilometers(chromosome, connections, distances, ev_capacity,
                                                 initial_ev_capacity, route_distances, penalty_factor=200)
@@ -137,6 +159,9 @@ def final_fitness_function(chromosome, connections, distances, queueing_time, ev
 
 
 def tournament_selection(population, fitnesses, tournament_size):
+    """
+    Select a parent for crossover using tournament selection.
+    """
     indices = list(range(len(population)))
 
     # Randomly select indices for the tournament
@@ -155,6 +180,10 @@ def tournament_selection(population, fitnesses, tournament_size):
 
 
 def crossover(parent1, parent2):
+    """
+    This function applies a crossover operation to two parent chromosomes (routes) to generate two offspring chromosomes.
+    The crossover process combines parts of the parent routes to create new routes.
+    """
     set1 = set(parent1)
     set2 = set(parent2)
     common_nodes = list(set1 & set2 - {parent1[0], parent1[-1], parent2[0], parent2[-1]})
@@ -204,15 +233,9 @@ def mutate(route, mutation_rate, points_with_ids):
 
 def mutate(route, points_with_ids, mutation_rate):
     """
-    Mutates a given chromosome by either replacing, adding, or swapping charging stations.
-
-    Parameters:
-    - route (list): List representing the route with charging stations.
-    - points_with_ids (list): List of tuples (index, coordinates, closest route segment index) for each charging station.
-    - mutation_rate (float): Probability of mutating the route, between 0 and 1.
-
-    Returns:
-    - mutated_route1, mutated_route2 (tuple): Two mutated routes.
+    This function introduces variations into the route by randomly mutating it based on a mutation rate. The mutations
+    can include replacing an existing charging station, adding a new station, or swapping stations. The function
+    returns two versions of the mutated route.
     """
     if random.random() > mutation_rate:
         # No mutation occurs, return the original route twice
@@ -258,7 +281,10 @@ def mutate(route, points_with_ids, mutation_rate):
 
 
 def initialize_population(points_with_ids, population_size):
-    """Create a population of chromosomes"""
+    """
+    This function generates the starting population for a genetic algorithm by creating a set of chromosomes
+    (routes) that will be evaluated and evolved. The chromosomes are represented as lists of charging station points.
+    """
     population = []
     num_points = len(points_with_ids)
 
@@ -298,6 +324,11 @@ def initialize_population(points_with_ids, population_size):
 def evaluate_population(population, connections, distances_CS, queueing_time, ev_capacity, initial_ev_capacity,
                         route_points_distances, labels,
                         starting_point_cluster):
+    """
+    This function computes the fitness scores for each chromosome (route) in the given population based on
+    a fitness function. The fitness scores are used to rank the chromosomes, and the population is sorted
+    according to these scores.
+    """
     fitnesses = [
         fitness_function(route, connections, distances_CS, queueing_time, ev_capacity, initial_ev_capacity,
                          route_points_distances, labels,
@@ -316,6 +347,9 @@ def evaluate_population(population, connections, distances_CS, queueing_time, ev
 def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
                       queueing_time, ev_capacity, initial_ev_capacity, route_points_distances, max_stagnation, labels,
                       starting_point_cluster):
+    """
+    Execute the genetic algorithm to find the optimal route based on given parameters.
+    """
     total_route_distance = np.sum(route_points_distances)
     if initial_ev_capacity > total_route_distance:
         return [], 1, []
