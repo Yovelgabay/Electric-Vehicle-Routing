@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import ndimage
 from matplotlib import pyplot as plt, image as mpimg
 from matplotlib.animation import FuncAnimation
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
@@ -100,7 +101,7 @@ def visualize_route(charging_stations, route, title, queueing_time, connections=
     # Plot connections
     for start, end in connections:
         plt.plot([charging_stations[start - points_diff][0], route[end - route_diff][0]],
-                 [charging_stations[start - points_diff][1], route[end - route_diff][1]], 'k--')
+                 [charging_stations[start - points_diff][1] - icon_height / 2, route[end - route_diff][1]], 'k--')
 
     # Set the limits of the plot
     plt.xlim(-2, 102)
@@ -392,32 +393,27 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     chosen_charging_stations = charging_stations[best_charging_stations]
     chosen_queueing_time = [queueing_time[idx] for idx in best_charging_stations]
 
-    charging_station_logo = mpimg.imread('Code/CS5.png')
+    charging_station_logo = mpimg.imread('CS.png')
 
     # Plot the charging station logo with corresponding penalty color
     for i, (x, y) in enumerate(chosen_charging_stations):
-        # Get the color based on the queueing time
         color = to_rgba(cmap(norm(chosen_queueing_time[i])))  # Get the RGBA color
 
-        # Create a copy of the image to modify
         colored_logo = charging_station_logo[:, :, :3].copy()  # Get the RGB channels
         alpha_channel = charging_station_logo[:, :, 3]  # Get the alpha channel
 
-        # Apply the color only to the non-transparent (i.e., non-zero alpha) pixels
         for c in range(3):  # Adjust each color channel based on the colormap color
             colored_logo[:, :, c] = np.where(alpha_channel > 0, color[c], colored_logo[:, :, c])
 
-        # Combine the colored image with the original alpha channel
         final_logo = np.dstack((colored_logo, alpha_channel))
 
-        # Create image box with the colored logo
-        imagebox = OffsetImage(final_logo, zoom=0.03, alpha=1)
+        imagebox = OffsetImage(final_logo, zoom=0.075, alpha=1)
         ab = AnnotationBbox(imagebox, (x, y), frameon=False)
         ax.add_artist(ab)
 
         ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add}', fontsize=10, color='gold')
 
-    # Plot connections only to the chosen stations
+    # Plot connections only to the chosen stations (RESTORED SECTION)
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
         ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], color='#FF5962',
@@ -426,6 +422,20 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         mid_y = (route[end][1] + charging_stations[start][1]) / 2
         segment_length = np.linalg.norm(route[end] - charging_stations[start])
         ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='#221BDC')
+
+    # Rotate car icon at the starting point to align with the direction of the route
+    car_icon = mpimg.imread('car_icon.png')
+    if len(route) > 1:
+        start_x, start_y = route[0]
+        next_x, next_y = route[1]
+
+        angle = np.degrees(np.arctan2(next_y - start_y, next_x - start_x))
+
+        rotated_car_icon = ndimage.rotate(car_icon, angle, reshape=True)
+
+        imagebox = OffsetImage(rotated_car_icon, zoom=0.05, alpha=1)
+        ab = AnnotationBbox(imagebox, (start_x, start_y), frameon=False)
+        ax.add_artist(ab)
 
     # Plot the entire route and annotate all segment lengths
     ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
@@ -470,7 +480,6 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     param_text = ' | '.join(params)
     ax.text(0.5, 1.10, param_text, transform=ax.transAxes, horizontalalignment='center',
             fontsize=6, color='black', bbox=dict(facecolor='#C1C1C1', alpha=0.5))
-
 
 # Function to visualize all routes and add button control
 def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters):
