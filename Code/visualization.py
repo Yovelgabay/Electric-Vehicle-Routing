@@ -411,7 +411,12 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         ab = AnnotationBbox(imagebox, (x, y), frameon=False)
         ax.add_artist(ab)
 
-        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i] + points_to_add}', fontsize=10, color='gold')
+        # Modify the color and add padding to the text
+        text_padding_x = 1.0  # Adjust this value to move the text horizontally
+        text_padding_y = 1.0  # Adjust this value to move the text vertically
+        ax.text(x + text_padding_x, y + text_padding_y, f'{best_charging_stations[i] + points_to_add}',
+                fontsize=10, color='blue', fontweight='bold',
+                bbox=dict(facecolor='white', alpha=0.6, boxstyle='round,pad=0.3'))
 
     # Plot connections only to the chosen stations (RESTORED SECTION)
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
