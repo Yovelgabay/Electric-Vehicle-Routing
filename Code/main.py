@@ -6,7 +6,8 @@ from Code.functions import (
     calculate_route_points_distances, generate_random_charging_stations_and_queueing_time,
     get_intersection_points, closest_point
 )
-from Code.visualization import visualize_all_routes, visualize_best_route_animation
+
+from Code.visualization import visualize_all_routes, visualize_best_route_animation ,visualize_clustering
 from GA import genetic_algorithm, calculate_distances_of_cs, final_fitness_function
 from kmeans import kmeans_clustering
 from parameters import *
@@ -36,6 +37,7 @@ def kmeans_and_assign_clusters(route, charging_stations):
     """Apply K-means clustering and assign route points to clusters."""
     labels, centroids, num_clusters = kmeans_clustering(charging_stations, math.ceil(len(route) / 3))
     assigned_points = assign_route_points_to_centroids(centroids, route)
+    visualize_clustering(num_clusters, charging_stations, labels, centroids)
     return labels, centroids, assigned_points
 
 
@@ -116,7 +118,6 @@ def main():
 
     # Get connections
     connections = get_connections(route, charging_stations)
-
     # Apply K-means clustering and assign clusters
     labels, centroids, assigned_points = kmeans_and_assign_clusters(route, charging_stations)
     # _, _, generations_data = genetic_algorithm(charging_stations_matrix, NUM_ROUTE_POINTS, connections,
