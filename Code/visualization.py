@@ -393,7 +393,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     chosen_charging_stations = charging_stations[best_charging_stations]
     chosen_queueing_time = [queueing_time[idx] for idx in best_charging_stations]
 
-    charging_station_logo = mpimg.imread('./assets/cs.png')
+    charging_station_logo = mpimg.imread('Code/assets/cs.png')
 
     # Plot the charging station logo with corresponding penalty color
     for i, (x, y) in enumerate(chosen_charging_stations):
@@ -421,7 +421,8 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     # Plot connections only to the chosen stations (RESTORED SECTION)
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
-        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], color='#FF5962',
+        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]],
+                color='#FF5962',
                 linewidth=2)
         mid_x = (route[end][0] + charging_stations[start][0]) / 2
         mid_y = (route[end][1] + charging_stations[start][1]) / 2
@@ -429,7 +430,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='#221BDC')
 
     # Rotate car icon at the starting point to align with the direction of the route
-    car_icon = mpimg.imread('./assets/car_icon.png')
+    car_icon = mpimg.imread('Code/assets/car_icon.png')
     if len(route) > 1:
         start_x, start_y = route[0]
         next_x, next_y = route[1]
@@ -477,14 +478,15 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         f'Generations: {GENERATIONS}',
         f'Mutation Rate: {MUTATION_RATE}',
         f'Num Points: {NUM_POINTS}',
-        f'Average Queueing Time: {MAX_STAGNATION}',
-        f'Max Stagnation: {AVERAGE_QUEUEING_TIME}'
+        f'Average Queueing Time: {AVERAGE_QUEUEING_TIME}',
+        f'Max Stagnation: {MAX_STAGNATION}'
     ]
 
     # Add text above the title for parameters
     param_text = ' | '.join(params)
     ax.text(0.5, 1.10, param_text, transform=ax.transAxes, horizontalalignment='center',
             fontsize=6, color='black', bbox=dict(facecolor='#C1C1C1', alpha=0.5))
+
 
 # Function to visualize all routes and add button control
 def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters):
