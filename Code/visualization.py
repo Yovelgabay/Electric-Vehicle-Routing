@@ -101,7 +101,7 @@ def visualize_route(charging_stations, route, title, queueing_time, connections=
     # Plot connections
     for start, end in connections:
         plt.plot([charging_stations[start - points_diff][0], route[end - route_diff][0]],
-                 [charging_stations[start - points_diff][1] - icon_height / 2, route[end - route_diff][1]], 'k--')
+                 [charging_stations[start - points_diff][1], route[end - route_diff][1]], 'k--')
 
     # Set the limits of the plot
     plt.xlim(-2, 102)
@@ -393,7 +393,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     chosen_charging_stations = charging_stations[best_charging_stations]
     chosen_queueing_time = [queueing_time[idx] for idx in best_charging_stations]
 
-    charging_station_logo = mpimg.imread('CS.png')
+    charging_station_logo = mpimg.imread('./assets/cs.png')
 
     # Plot the charging station logo with corresponding penalty color
     for i, (x, y) in enumerate(chosen_charging_stations):
@@ -412,8 +412,8 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         ax.add_artist(ab)
 
         # Modify the color and add padding to the text
-        text_padding_x = 1.0  # Adjust this value to move the text horizontally
-        text_padding_y = 1.0  # Adjust this value to move the text vertically
+        text_padding_x = -3.0  # Adjust this value to move the text horizontally
+        text_padding_y = 2.0  # Adjust this value to move the text vertically
         ax.text(x + text_padding_x, y + text_padding_y, f'{best_charging_stations[i] + points_to_add}',
                 fontsize=10, color='blue', fontweight='bold',
                 bbox=dict(facecolor='white', alpha=0.6, boxstyle='round,pad=0.3'))
@@ -429,7 +429,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
         ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='#221BDC')
 
     # Rotate car icon at the starting point to align with the direction of the route
-    car_icon = mpimg.imread('car_icon.png')
+    car_icon = mpimg.imread('./assets/car_icon.png')
     if len(route) > 1:
         start_x, start_y = route[0]
         next_x, next_y = route[1]
