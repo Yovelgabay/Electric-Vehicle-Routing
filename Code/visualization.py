@@ -8,6 +8,7 @@ from scipy.spatial.distance import cdist
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize, to_rgba
 
+
 from Code.parameters import EV_CAPACITY, POPULATION_SIZE, GENERATIONS, MUTATION_RATE, NUM_POINTS, MAX_STAGNATION, \
     AVERAGE_QUEUEING_TIME
 
@@ -365,7 +366,8 @@ def visualize_best_route_animation(route, charging_stations, generations_data, c
     - route_points_distances: List of distances between consecutive route points.
     - interval: Time interval between frames in milliseconds.
     """
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
+    plt.style.use('seaborn-darkgrid')
 
     def update(frame):
         best_charging_stations = generations_data[frame]
@@ -380,7 +382,7 @@ def visualize_best_route_animation(route, charging_stations, generations_data, c
 # Function to update the plot for dynamic visualization
 def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations, connections,
                             queueing_time, distances, starting_point_index, points_to_add, subset_labels,
-                            subset_centroids, starting_point_cluster):
+                            subset_centroids, starting_point_cluster,final_chromosome):
     ax.clear()
 
     # Define custom colormap ranging from green to red
@@ -394,6 +396,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     chosen_queueing_time = [queueing_time[idx] for idx in best_charging_stations]
 
     charging_station_logo = mpimg.imread('Code/assets/cs.png')
+    # Check if the first chosen charging station is connected to the starting point
 
     # Plot the charging station logo with corresponding penalty color
     for i, (x, y) in enumerate(chosen_charging_stations):
@@ -431,6 +434,8 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
     # Rotate car icon at the starting point to align with the direction of the route
     car_icon = mpimg.imread('Code/assets/car_icon.png')
+    gold_color = [102 / 255, 153 / 255, 255 / 255]  # RGB for gold
+
     if len(route) > 1:
         start_x, start_y = route[0]
         next_x, next_y = route[1]
@@ -439,9 +444,27 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
         rotated_car_icon = ndimage.rotate(car_icon, angle, reshape=True)
 
-        imagebox = OffsetImage(rotated_car_icon, zoom=0.05, alpha=1)
+        imagebox = OffsetImage(rotated_car_icon, zoom=0.07, alpha=1)
         ab = AnnotationBbox(imagebox, (start_x, start_y), frameon=False)
         ax.add_artist(ab)
+        updated_best_charging_stations = []
+        for i in range(len(best_charging_stations)):
+            updated_best_charging_stations.append(best_charging_stations[i] + points_to_add)  # Add to each element
+        if updated_best_charging_stations[0] in final_chromosome and (updated_best_charging_stations[0], 0) in connections:
+            # Apply the color to the car icon (assuming the car icon has an alpha channel)
+            colored_car_icon = car_icon[:, :, :3].copy()
+            alpha_channel = car_icon[:, :, 3]  # Get the alpha channel
+            # Adjust each color channel based on the chosen color
+            for c in range(3):
+                colored_car_icon[:, :, c] = np.where(alpha_channel > 0, gold_color[c], colored_car_icon[:, :, c])
+            # Combine the colored car icon with the alpha channel
+            final_car_icon = np.dstack((colored_car_icon, alpha_channel))
+            # Display the colored car icon
+            rotated_car_icon = ndimage.rotate(final_car_icon, angle, reshape=True)
+            imagebox = OffsetImage(rotated_car_icon, zoom=0.07, alpha=1)
+            ab = AnnotationBbox(imagebox, (start_x, start_y), frameon=False)
+            ax.add_artist(ab)
+
 
     # Plot the entire route and annotate all segment lengths
     ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
@@ -489,7 +512,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
 
 # Function to visualize all routes and add button control
-def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters):
+def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters,final_chromosome):
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Initialize index for starting point
@@ -505,7 +528,7 @@ def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters
         starting_point_cluster = starting_point_clusters[current_index]
         update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                                 connections, queueing_time, distances, current_index, points_to_add,
-                                subset_labels, subset_centroids, starting_point_cluster)
+                                subset_labels, subset_centroids, starting_point_cluster,final_chromosome)
         plt.draw()
 
     # Initial plot
@@ -516,7 +539,7 @@ def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters
     starting_point_cluster = starting_point_clusters[current_index]
     update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                             connections, queueing_time, distances, current_index, points_to_add,
-                            subset_labels, subset_centroids, starting_point_cluster)
+                            subset_labels, subset_centroids, starting_point_cluster,final_chromosome)
 
     # Create a button and set its position
     ax_button = plt.axes([0.8, 0.01, 0.1, 0.05])

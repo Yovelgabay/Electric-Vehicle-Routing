@@ -37,7 +37,7 @@ def kmeans_and_assign_clusters(route, charging_stations):
     """Apply K-means clustering and assign route points to clusters."""
     labels, centroids, num_clusters = kmeans_clustering(charging_stations, math.ceil(len(route) / 3))
     assigned_points = assign_route_points_to_centroids(centroids, route)
-    visualize_clustering(num_clusters, charging_stations, labels, centroids)
+    # visualize_clustering(num_clusters, charging_stations, labels, centroids)
     return labels, centroids, assigned_points
 
 
@@ -145,7 +145,7 @@ def main():
         print(f"Final Fitness Score: {fitness_score * 100:.6f}")
 
     # Visualize all routes
-    visualize_all_routes(best_routes, labels, centroids, assigned_points)
+    visualize_all_routes(best_routes, labels, centroids, assigned_points,final_chromosome)
 
 
 if __name__ == "__main__":
