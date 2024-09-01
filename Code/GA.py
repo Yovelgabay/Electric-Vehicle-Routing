@@ -128,7 +128,7 @@ def fitness_function(chromosome, connections, distances, queueing_time, ev_capac
         queueing_time[stop] if labels[stop] == starting_point_cluster
         else AVERAGE_QUEUEING_TIME
         for stop in chromosome
-    )
+    ) * 1  # adjust this value
 
     total_penalty = total_distance + queueing_time_penalty + exceeded_km
     return 1 / total_penalty if total_penalty > 0 else 1e-12
@@ -344,58 +344,81 @@ def evaluate_population(population, connections, distances_CS, queueing_time, ev
     return sorted_routes, sorted_fitnesses
 
 
-def genetic_algorithm(points_with_ids, route_points, connections, population_size, generations, mutation_rate,
-                      queueing_time, ev_capacity, initial_ev_capacity, route_points_distances, max_stagnation, labels,
-                      starting_point_cluster):
+def genetic_algorithm(charging_station_points, route_points, connections, initial_population_addition, population_size,
+                      num_generations, mutation_rate, queueing_time, ev_capacity, initial_ev_capacity,
+                      segment_distances, max_stagnation, labels, starting_point_cluster):
     """
     Execute the genetic algorithm to find the optimal route based on given parameters.
     """
-    total_route_distance = np.sum(route_points_distances)
+
+    # Calculate the total distance of the route
+    total_route_distance = np.sum(segment_distances)
+    # If the initial EV capacity is greater than the total route distance, return empty results
     if initial_ev_capacity > total_route_distance:
         return [], 1, []
 
-    distances_cs = calculate_distances_of_cs(points_with_ids, route_points)
+    # Calculate distances between charging stations and route points
+    charging_station_distances = calculate_distances_of_cs(charging_station_points, route_points)
 
-    population = initialize_population(points_with_ids, population_size)
-    evaluated_population, fitnesses = evaluate_population(population, connections, distances_cs, queueing_time,
-                                                          ev_capacity, initial_ev_capacity, route_points_distances,
-                                                          labels,
-                                                          starting_point_cluster)
+    # Initialize the population with random routes
+    population = initialize_population(charging_station_points, population_size)
+    # If there are charging stations to add, include them in the initial population
+    if len(initial_population_addition) != 0:
+        population.append(initial_population_addition)
 
-    best_fitness = fitnesses[0]
+    # Evaluate the initial population's fitness
+    evaluated_population, fitness_scores = evaluate_population(population, connections, charging_station_distances,
+                                                               queueing_time, ev_capacity, initial_ev_capacity,
+                                                               segment_distances, labels, starting_point_cluster)
+
+    # Track the best fitness and route from the initial population
+    best_fitness = fitness_scores[0]
     best_route = evaluated_population[0]
     best_routes_per_generation = [best_route]
 
-    stagnation_counter = 0
-    for generation in range(generations):
-        next_population = []
+    stagnation_counter = 0  # Counter to track the number of generations without improvement
+    for generation in range(num_generations):
+        next_population = [best_route]  # Start the next generation with the current best route
+
+        # Generate new offspring using selection, crossover, and mutation
         for _ in range(population_size // 4):
-            parent1 = tournament_selection(evaluated_population, fitnesses, tournament_size=6)
-            parent2 = tournament_selection(evaluated_population, fitnesses, tournament_size=6)
+            # Select two parents using tournament selection
+            parent1 = tournament_selection(evaluated_population, fitness_scores, tournament_size=4)
+            parent2 = tournament_selection(evaluated_population, fitness_scores, tournament_size=4)
 
+            # Perform crossover to create two children
             child1, child2 = crossover(parent1, parent2)
-            mutated_child1a, mutated_child1b = mutate(child1, points_with_ids, mutation_rate)
-            mutated_child2a, mutated_child2b = mutate(child2, points_with_ids, mutation_rate)
 
+            # Perform mutation to introduce variability
+            mutated_child1a, mutated_child1b = mutate(child1, charging_station_points, mutation_rate)
+            mutated_child2a, mutated_child2b = mutate(child2, charging_station_points, mutation_rate)
+
+            # Add the mutated children to the next generation population
             next_population.extend([mutated_child1a, mutated_child1b, mutated_child2a, mutated_child2b])
 
-        evaluated_population, fitnesses = evaluate_population(next_population, connections, distances_cs, queueing_time,
-                                                              ev_capacity, initial_ev_capacity, route_points_distances,
-                                                              labels,
-                                                              starting_point_cluster)
+        # Evaluate the fitness of the new population
+        evaluated_population, fitness_scores = evaluate_population(next_population, connections,
+                                                                   charging_station_distances, queueing_time,
+                                                                   ev_capacity, initial_ev_capacity,
+                                                                   segment_distances, labels, starting_point_cluster)
 
-        current_best_fitness = fitnesses[0]
+        # Update the best route if a better one is found
+        current_best_fitness = fitness_scores[0]
         if current_best_fitness > best_fitness:
             best_fitness = current_best_fitness
             best_route = evaluated_population[0]
-            stagnation_counter = 0
+            stagnation_counter = 0  # Reset stagnation counter since improvement occurred
         else:
-            stagnation_counter += 1
+            stagnation_counter += 1  # Increment stagnation counter if no improvement
 
+        # Keep track of the best route in each generation
         best_routes_per_generation.append(best_route)
 
+        # Stop if there has been no improvement for the defined number of generations
         if stagnation_counter >= max_stagnation:
             break
+
         print(f"Generation {generation + 1}: Best fitness = {best_fitness * 100:.5f}")
 
     return best_route, best_fitness, best_routes_per_generation
+
