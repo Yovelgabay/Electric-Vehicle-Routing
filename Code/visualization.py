@@ -186,11 +186,11 @@ def demonstrate_chosen_route(route, charging_stations, best_route_indices, conne
 
 
 # Function to print waiting time for each stop
-def print_waiting_times(best_charging_stations, charging_stations_matrix, labels, starting_point_cluster,
+def print_waiting_times(best_charging_stations, charging_stations_matrix, cluster_labels, starting_point_cluster,
                         average_waiting_time, queueing_time):
     for stop_index in best_charging_stations:
         stop_id, (x, y), _ = charging_stations_matrix[stop_index]
-        cluster = labels[stop_index]
+        cluster = cluster_labels[stop_index]
         if cluster == starting_point_cluster:
             waiting_time = queueing_time[stop_index]  # Use real waiting time
         else:
@@ -198,13 +198,13 @@ def print_waiting_times(best_charging_stations, charging_stations_matrix, labels
         print(f"CS {stop_index}: Waiting Time = {waiting_time:.2f}")
 
 
-def visualize_clustering(num_clusters, charging_stations, labels, centroids):
+def visualize_clustering(num_clusters, charging_stations, cluster_labels, centroids):
     # Visualize the clustered charging_stations
     plt.figure(figsize=(8, 6))
     cmap = plt.cm.get_cmap('tab10')
 
     for i in range(num_clusters):
-        cluster_charging_stations = charging_stations[labels == i]
+        cluster_charging_stations = charging_stations[cluster_labels == i]
         plt.scatter(cluster_charging_stations[:, 0], cluster_charging_stations[:, 1], color=cmap(i), marker='o',
                     label=f'Cluster {i + 1}')
         plt.scatter(centroids[i, 0], centroids[i, 1], color='black', marker='x', s=100, linewidths=3)
@@ -217,7 +217,7 @@ def visualize_clustering(num_clusters, charging_stations, labels, centroids):
     plt.show()
 
     # # Print charging_stations and their assigned clusters
-    # for i, (point, label) in enumerate(zip(charging_stations, labels)):
+    # for i, (point, label) in enumerate(zip(charging_stations, cluster_labels)):
     #     print(f'Point {i}: ({point[0]:.2f}, {point[1]:.2f}) - Cluster {label + 1}')
 
 
@@ -377,10 +377,13 @@ def visualize_best_route_animation(route, charging_stations, generations_data, c
     plt.show()
 
 
-# Function to update the plot for dynamic visualization
 def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations, connections,
-                            queueing_time, distances, starting_point_index, points_to_add, subset_labels,
+                            queueing_time, distances, starting_point_index, points_to_add, subset_cluster_labels,
                             subset_centroids, starting_point_cluster):
+    """
+    Function to update the plot for dynamic visualization
+    """
+
     ax.clear()
 
     # Define custom colormap ranging from green to red
@@ -489,7 +492,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
 
 # Function to visualize all routes and add button control
-def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters):
+def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_clusters):
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Initialize index for starting point
@@ -500,23 +503,23 @@ def visualize_all_routes(best_routes, labels, centroids, starting_point_clusters
         current_index = (current_index + 1) % len(best_routes)
         route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add = \
             best_routes[current_index]
-        subset_labels = labels[points_to_add:]
+        subset_cluster_labels = cluster_labels[points_to_add:]
         subset_centroids = centroids
         starting_point_cluster = starting_point_clusters[current_index]
         update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                                 connections, queueing_time, distances, current_index, points_to_add,
-                                subset_labels, subset_centroids, starting_point_cluster)
+                                subset_cluster_labels, subset_centroids, starting_point_cluster)
         plt.draw()
 
     # Initial plot
     route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add = \
         best_routes[current_index]
-    subset_labels = labels[points_to_add:]
+    subset_cluster_labels = cluster_labels[points_to_add:]
     subset_centroids = centroids
     starting_point_cluster = starting_point_clusters[current_index]
     update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                             connections, queueing_time, distances, current_index, points_to_add,
-                            subset_labels, subset_centroids, starting_point_cluster)
+                            subset_cluster_labels, subset_centroids, starting_point_cluster)
 
     # Create a button and set its position
     ax_button = plt.axes([0.8, 0.01, 0.1, 0.05])

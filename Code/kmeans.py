@@ -6,6 +6,9 @@ from sklearn.metrics import silhouette_score
 
 # Function to determine the best k using Silhouette Coefficient
 # def optimal_k_using_silhouette(data, max_k=10):
+#     """
+#     Determine the optimal number of clusters using the Silhouette Coefficient.
+#     """
 #     silhouette_scores = []
 #     for k in range(2, max_k + 1):
 #         kmeans = KMeans(n_clusters=k, random_state=0).fit(data)
@@ -20,8 +23,15 @@ from sklearn.metrics import silhouette_score
 
 
 def kmeans_clustering(points, num_clusters):
-    # K-Means Clustering
+    """
+    Apply K-Means clustering algorithm to a set of points.
+    """
+
+    # Initialize and fit the K-Means model
     kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(points)
-    labels = kmeans.labels_
+
+    # Get the labels assigned to each point and the coordinates of the centroids
+    cluster_labels = kmeans.labels_
     centroids = kmeans.cluster_centers_
-    return labels, centroids, num_clusters
+
+    return cluster_labels, centroids, num_clusters
