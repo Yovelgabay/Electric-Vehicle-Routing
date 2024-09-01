@@ -9,7 +9,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize, to_rgba
 
 from Code.parameters import EV_CAPACITY, POPULATION_SIZE, GENERATIONS, MUTATION_RATE, NUM_POINTS, MAX_STAGNATION, \
-    AVERAGE_QUEUEING_TIME
+    AVERAGE_QUEUEING_TIME, MIN_QUEUEING_TIME, MAX_QUEUEING_TIME
 
 
 def plot_centroids_and_route(centroids, route, closest_centroids):
@@ -387,7 +387,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
 
     # Normalize queueing_time for color mapping
-    norm = Normalize(vmin=min(queueing_time), vmax=max(queueing_time))
+    norm = Normalize(vmin=MIN_QUEUEING_TIME, vmax=MAX_QUEUEING_TIME)
 
     # Highlight the chosen charging stations
     chosen_charging_stations = charging_stations[best_charging_stations]
