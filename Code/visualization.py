@@ -365,7 +365,8 @@ def visualize_best_route_animation(route, charging_stations, generations_data, c
     - route_points_distances: List of distances between consecutive route points.
     - interval: Time interval between frames in milliseconds.
     """
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
+    plt.style.use('seaborn-darkgrid')
 
     def update(frame):
         best_charging_stations = generations_data[frame]
@@ -379,7 +380,7 @@ def visualize_best_route_animation(route, charging_stations, generations_data, c
 
 def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations, connections,
                             queueing_time, distances, starting_point_index, points_to_add, subset_cluster_labels,
-                            subset_centroids, starting_point_cluster):
+                            subset_centroids, starting_point_cluster, final_chromosome):
     """
     Function to update the plot for dynamic visualization
     """
@@ -434,6 +435,8 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
     # Rotate car icon at the starting point to align with the direction of the route
     car_icon = mpimg.imread('Code/assets/car_icon.png')
+    gold_color = [102 / 255, 153 / 255, 255 / 255]  # RGB for gold
+
     if len(route) > 1:
         start_x, start_y = route[0]
         next_x, next_y = route[1]
@@ -442,9 +445,29 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
         rotated_car_icon = ndimage.rotate(car_icon, angle, reshape=True)
 
-        imagebox = OffsetImage(rotated_car_icon, zoom=0.05, alpha=1)
+        imagebox = OffsetImage(rotated_car_icon, zoom=0.07, alpha=1)
+
         ab = AnnotationBbox(imagebox, (start_x, start_y), frameon=False)
         ax.add_artist(ab)
+
+        updated_best_charging_stations = []
+        for i in range(len(best_charging_stations)):
+            updated_best_charging_stations.append(best_charging_stations[i] + points_to_add)  # Add to each element
+        if updated_best_charging_stations[0] in final_chromosome and (
+                updated_best_charging_stations[0], 0) in connections:
+            # Apply the color to the car icon (assuming the car icon has an alpha channel)
+            colored_car_icon = car_icon[:, :, :3].copy()
+            alpha_channel = car_icon[:, :, 3]  # Get the alpha channel
+            # Adjust each color channel based on the chosen color
+            for c in range(3):
+                colored_car_icon[:, :, c] = np.where(alpha_channel > 0, gold_color[c], colored_car_icon[:, :, c])
+            # Combine the colored car icon with the alpha channel
+            final_car_icon = np.dstack((colored_car_icon, alpha_channel))
+            # Display the colored car icon
+            rotated_car_icon = ndimage.rotate(final_car_icon, angle, reshape=True)
+            imagebox = OffsetImage(rotated_car_icon, zoom=0.07, alpha=1)
+            ab = AnnotationBbox(imagebox, (start_x, start_y), frameon=False)
+            ax.add_artist(ab)
 
     # Plot the entire route and annotate all segment lengths
     ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
