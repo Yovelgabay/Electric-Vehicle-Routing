@@ -354,19 +354,8 @@ def update_plot(ax, route, charging_stations, best_charging_stations, connection
 
 def visualize_best_route_animation(route, charging_stations, generations_data, connections, route_points_distances,
                                    queueing_time, interval=500):
-    """
-    Visualize the best route at each generation using animation.
-
-    Parameters:
-    - route: Array of (x, y) coordinates defining the route.
-    - charging_stations: Array of (x, y) coordinates of the charging_stations.
-    - generations_data: List of best charging stations for each generation.
-    - connections: List of tuples defining connections between charging_stations and route segments.
-    - route_points_distances: List of distances between consecutive route points.
-    - interval: Time interval between frames in milliseconds.
-    """
     fig, ax = plt.subplots(figsize=(12, 8))
-    plt.style.use('seaborn-darkgrid')
+    show_all_points = False
 
     def update(frame):
         best_charging_stations = generations_data[frame]
@@ -380,18 +369,19 @@ def visualize_best_route_animation(route, charging_stations, generations_data, c
 
 def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations, connections,
                             queueing_time, distances, starting_point_index, points_to_add, subset_cluster_labels,
-                            subset_centroids, starting_point_cluster, final_chromosome):
-    """
-    Function to update the plot for dynamic visualization
-    """
-
+                            subset_centroids, starting_point_cluster, final_chromosome,show_all_points=False):
     ax.clear()
-
-    # Define custom colormap ranging from green to red
-    cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
-
-    # Normalize queueing_time for color mapping
+    cmap = plt.cm.get_cmap('RdYlGn_r')
     norm = Normalize(vmin=MIN_QUEUEING_TIME, vmax=MAX_QUEUEING_TIME)
+
+    if show_all_points:
+        for idx, (x, y) in enumerate(charging_stations):
+            if idx in best_charging_stations:
+                continue  # Skip already selected stations
+
+            # Use a lighter color for non-selected stations
+            ax.scatter(x, y, color='gray', alpha=0.5, label='All Charging Stations' if idx == 0 else "")
+            ax.text(x, y, f'{idx + points_to_add}', fontsize=8, color='gray')
 
     # Highlight the chosen charging stations
     chosen_charging_stations = charging_stations[best_charging_stations]
@@ -445,7 +435,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
         rotated_car_icon = ndimage.rotate(car_icon, angle, reshape=True)
 
-        imagebox = OffsetImage(rotated_car_icon, zoom=0.07, alpha=1)
+        imagebox = OffsetImage(rotated_car_icon, zoom=0.06, alpha=1)
 
         ab = AnnotationBbox(imagebox, (start_x, start_y), frameon=False)
         ax.add_artist(ab)
@@ -465,7 +455,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
             final_car_icon = np.dstack((colored_car_icon, alpha_channel))
             # Display the colored car icon
             rotated_car_icon = ndimage.rotate(final_car_icon, angle, reshape=True)
-            imagebox = OffsetImage(rotated_car_icon, zoom=0.07, alpha=1)
+            imagebox = OffsetImage(rotated_car_icon, zoom=0.06, alpha=1)
             ab = AnnotationBbox(imagebox, (start_x, start_y), frameon=False)
             ax.add_artist(ab)
 
@@ -511,7 +501,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
     # Add text above the title for parameters
     param_text = ' | '.join(params)
     ax.text(0.5, 1.10, param_text, transform=ax.transAxes, horizontalalignment='center',
-            fontsize=6, color='black', bbox=dict(facecolor='#C1C1C1', alpha=0.5))
+            fontsize=8, color='black', bbox=dict(facecolor='#E1E1E1', edgecolor='grey', boxstyle='round,pad=0.3'))
 
 
 # Function to visualize all routes and add button control
@@ -520,10 +510,10 @@ def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_
 
     # Initialize index for starting point
     current_index = 0
+    show_all_points = False
 
-    def next_plot(event):
-        nonlocal current_index
-        current_index = (current_index + 1) % len(best_routes)
+    def update_plot_with_toggle():
+        """Helper function to update the plot based on the current state."""
         route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add = \
             best_routes[current_index]
         subset_cluster_labels = cluster_labels[points_to_add:]
@@ -531,24 +521,31 @@ def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_
         starting_point_cluster = starting_point_clusters[current_index]
         update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                                 connections, queueing_time, distances, current_index, points_to_add,
-                                subset_cluster_labels, subset_centroids, starting_point_cluster, final_chromosome)
+                                subset_cluster_labels, subset_centroids, starting_point_cluster,final_chromosome,
+                                show_all_points=show_all_points)
         plt.draw()
 
+    def next_plot(event):
+        """Function to move to the next plot."""
+        nonlocal current_index
+        current_index = (current_index + 1) % len(best_routes)
+        update_plot_with_toggle()
+
+    def toggle_display(event):
+        """Function to toggle the display of all points."""
+        nonlocal show_all_points
+        show_all_points = not show_all_points
+        update_plot_with_toggle()
+
     # Initial plot
-    route, charging_stations, best_charging_stations, connections, queueing_time, distances, points_to_add = \
-        best_routes[current_index]
-    subset_cluster_labels = cluster_labels[points_to_add:]
-    subset_centroids = centroids
-    starting_point_cluster = starting_point_clusters[current_index]
-    update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
-                            connections, queueing_time, distances, current_index, points_to_add,
-                            subset_cluster_labels, subset_centroids, starting_point_cluster, final_chromosome)
-
+    update_plot_with_toggle()
     # Create a button and set its position
-    ax_button = plt.axes([0.8, 0.01, 0.1, 0.05])
-    button = Button(ax_button, label='Next', hovercolor='#65806D')
+    ax_button_next = plt.axes([0.78, 0.01, 0.08, 0.04])
+    button_next = Button(ax_button_next, label='Next', color='#2A75A9', hovercolor='#5079C1')
+    button_next.on_clicked(next_plot)
 
-    # Bind the button click event to the next_plot function
-    button.on_clicked(next_plot)
+    ax_button_toggle = plt.axes([0.68, 0.01, 0.08, 0.04])
+    button_toggle = Button(ax_button_toggle, label='Toggle Points', color='#4C8C4A', hovercolor='#72A77E')
+    button_toggle.on_clicked(toggle_display)
 
     plt.show()
