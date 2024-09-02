@@ -492,7 +492,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
 
 # Function to visualize all routes and add button control
-def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_clusters):
+def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_clusters, final_chromosome):
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Initialize index for starting point
@@ -508,7 +508,7 @@ def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_
         starting_point_cluster = starting_point_clusters[current_index]
         update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                                 connections, queueing_time, distances, current_index, points_to_add,
-                                subset_cluster_labels, subset_centroids, starting_point_cluster)
+                                subset_cluster_labels, subset_centroids, starting_point_cluster, final_chromosome)
         plt.draw()
 
     # Initial plot
@@ -519,7 +519,7 @@ def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_
     starting_point_cluster = starting_point_clusters[current_index]
     update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                             connections, queueing_time, distances, current_index, points_to_add,
-                            subset_cluster_labels, subset_centroids, starting_point_cluster)
+                            subset_cluster_labels, subset_centroids, starting_point_cluster, final_chromosome)
 
     # Create a button and set its position
     ax_button = plt.axes([0.8, 0.01, 0.1, 0.05])

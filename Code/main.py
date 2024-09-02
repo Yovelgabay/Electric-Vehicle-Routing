@@ -214,7 +214,7 @@ def main():
         print(f"Final Fitness Score: {fitness_score * 100:.6f}")
 
     # Visualize all routes
-    visualize_all_routes(best_routes, cluster_labels, centroids, assigned_points)
+    visualize_all_routes(best_routes, cluster_labels, centroids, assigned_points, final_chromosome)
 
 
 if __name__ == "__main__":

@@ -163,13 +163,13 @@ def final_fitness_function(chromosome, connections, distances, queueing_time, ev
     exceeded_km = calculate_exceeded_kilometers(
         chromosome, connections, distances, ev_capacity,
         initial_ev_capacity, route_distances, exceeded_penalty_factor=200
-    ) * queueing_time_penalty_factor
+    )
 
     # Calculate the total distance traveled by the vehicle
     total_distance = sum(distances[stop] for stop in chromosome)
 
     # Calculate the queueing time penalty using the actual queueing times at charging stations
-    queueing_time_penalty = sum(queueing_time[stop] for stop in chromosome)
+    queueing_time_penalty = sum(queueing_time[stop] for stop in chromosome) * queueing_time_penalty_factor
 
     # Stops penalty (optional, currently set to zero)
     stops_penalty = 0  # This can be adjusted if needed
