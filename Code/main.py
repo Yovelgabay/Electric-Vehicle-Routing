@@ -56,9 +56,9 @@ def kmeans_and_assign_clusters(route, charging_stations):
     Apply K-means clustering to charging stations and assign route points to clusters.
     """
 
-    # Perform K-means clustering on the charging stations
-    # Number of clusters is chosen as the ceiling of one-third the length of the route,
-    # which provides a reasonable number of clusters for effective clustering in the algorithm
+    """ Perform K-means clustering on the charging stations
+        Number of clusters is chosen as the ceiling of one-third the length of the route,
+        which provides a reasonable number of clusters for effective clustering in the algorithm """
     cluster_labels, centroids, num_clusters = kmeans_clustering(charging_stations, math.ceil(len(route) / 3))
 
     # Assign each route point to the nearest centroid

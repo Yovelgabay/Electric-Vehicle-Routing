@@ -127,10 +127,7 @@ def fitness_function(chromosome, connections, distances, queueing_time, ev_capac
     """
     Evaluate the fitness of a chromosome based on total distance, queueing time, and penalty for exceeding EV capacity.
     """
-
-    # Factor to adjust the impact of queueing time on the overall fitness score.
     queueing_time_penalty_factor = 2
-
     # Calculate the total kilometers exceeding the EV capacity
     exceeded_km = calculate_exceeded_kilometers(
         chromosome, connections, distances, ev_capacity,
@@ -145,7 +142,7 @@ def fitness_function(chromosome, connections, distances, queueing_time, ev_capac
         queueing_time[stop] if cluster_labels[stop] == starting_point_cluster
         else AVERAGE_QUEUEING_TIME
         for stop in chromosome
-    ) * queueing_time_penalty_factor
+    ) * queueing_time_penalty_factor  # adjust this value as needed
 
     # Compute the total penalty
     total_penalty = total_distance + queueing_time_penalty + exceeded_km
@@ -157,11 +154,9 @@ def fitness_function(chromosome, connections, distances, queueing_time, ev_capac
 def final_fitness_function(chromosome, connections, distances, queueing_time, ev_capacity,
                            initial_ev_capacity, route_distances):
     """
-    Calculate the final fitness score of a chromosome based on total distance, queueing time,
-    and penalty for exceeding EV capacity.
+    Calculate the final fitness score of a chromosome based on total distance, queueing time, and penalty for exceeding EV capacity.
     """
 
-    # Factor to adjust the impact of queueing time on the overall fitness score.
     queueing_time_penalty_factor = 2
 
     # Calculate the total kilometers exceeding the EV capacity
@@ -341,80 +336,121 @@ def evaluate_population(population, connections, distances_CS, queueing_time, ev
 
 def genetic_algorithm(charging_station_points, route_points, connections, initial_population_addition,
                       population_size, num_generations, mutation_rate, queueing_time, ev_capacity,
-                      initial_ev_capacity, segment_distances, max_stagnation, cluster_labels, starting_point_cluster):
+                      initial_ev_capacity, segment_distances, max_stagnation, cluster_labels,
+                      starting_point_cluster, selection_method):
     """
     Execute the genetic algorithm to find the optimal route based on given parameters.
     """
-
-    # Calculate the total distance of the route
+    # Existing code initialization
     total_route_distance = np.sum(segment_distances)
-    # If the initial EV capacity is greater than the total route distance, return empty results
     if initial_ev_capacity > total_route_distance:
         return [], 1, []
 
-    # Calculate distances between charging stations and route points
     charging_station_distances = calculate_distances_of_cs(charging_station_points, route_points)
-
-    # Initialize the population with random routes
     population = initialize_population(charging_station_points, population_size)
-    # If there are charging stations to add, include them in the initial population
+
     if len(initial_population_addition) != 0:
         population.append(initial_population_addition)
 
-    # Evaluate the initial population's fitness
-    evaluated_population, fitness_scores = evaluate_population(population, connections, charging_station_distances,
-                                                               queueing_time, ev_capacity, initial_ev_capacity,
-                                                               segment_distances, cluster_labels, starting_point_cluster)
+    evaluated_population, fitness_scores = evaluate_population(
+        population, connections, charging_station_distances, queueing_time, ev_capacity,
+        initial_ev_capacity, segment_distances, cluster_labels, starting_point_cluster
+    )
 
-    # Track the best fitness and route from the initial population
     best_fitness = fitness_scores[0]
     best_route = evaluated_population[0]
     best_routes_per_generation = [best_route]
+    stagnation_counter = 0
 
-    stagnation_counter = 0  # Counter to track the number of generations without improvement
     for generation in range(num_generations):
-        next_population = []  # Start the next generation with the current best route
+        next_population = []  # Preserve the best route
 
-        # Generate new offspring using selection, crossover, and mutation
+        # Generate new offspring
         for _ in range(population_size // 4):
-            # Select two parents using tournament selection
-            parent1 = tournament_selection(evaluated_population, fitness_scores, tournament_size=4)
-            parent2 = tournament_selection(evaluated_population, fitness_scores, tournament_size=4)
+            # Use the selected method for parent selection
+            if selection_method == 'tournament_4':
+                parent1 = tournament_selection(evaluated_population, fitness_scores, tournament_size=4)
+                parent2 = tournament_selection(evaluated_population, fitness_scores, tournament_size=4)
+            elif selection_method == 'tournament_6':
+                parent1 = tournament_selection(evaluated_population, fitness_scores, tournament_size=6)
+                parent2 = tournament_selection(evaluated_population, fitness_scores, tournament_size=6)
+            elif selection_method == 'tournament_8':
+                parent1 = tournament_selection(evaluated_population, fitness_scores, tournament_size=8)
+                parent2 = tournament_selection(evaluated_population, fitness_scores, tournament_size=8)
+            elif selection_method == 'roulette_wheel':
+                parent1 = roulette_wheel_selection(evaluated_population, fitness_scores)
+                parent2 = roulette_wheel_selection(evaluated_population, fitness_scores)
+            elif selection_method == 'rank_selection':
+                parent1 = rank_selection(evaluated_population, fitness_scores)
+                parent2 = rank_selection(evaluated_population, fitness_scores)
+            else:
+                raise ValueError("Invalid selection method specified.")
 
-            # Perform crossover to create two children
             child1, child2 = crossover(parent1, parent2)
-
-            # Perform mutation to introduce variability
             mutated_child1a, mutated_child1b = mutate(child1, charging_station_points, mutation_rate)
             mutated_child2a, mutated_child2b = mutate(child2, charging_station_points, mutation_rate)
 
-            # Add the mutated children to the next generation population
             next_population.extend([mutated_child1a, mutated_child1b, mutated_child2a, mutated_child2b])
 
-        # Evaluate the fitness of the new population
-        evaluated_population, fitness_scores = evaluate_population(next_population, connections,
-                                                                   charging_station_distances, queueing_time,
-                                                                   ev_capacity, initial_ev_capacity,
-                                                                   segment_distances,
-                                                                   cluster_labels, starting_point_cluster)
+        evaluated_population, fitness_scores = evaluate_population(
+            next_population, connections, charging_station_distances, queueing_time,
+            ev_capacity, initial_ev_capacity, segment_distances, cluster_labels, starting_point_cluster
+        )
 
-        # Update the best route if a better one is found
         current_best_fitness = fitness_scores[0]
         if current_best_fitness > best_fitness:
             best_fitness = current_best_fitness
             best_route = evaluated_population[0]
-            stagnation_counter = 0  # Reset stagnation counter since improvement occurred
+            stagnation_counter = 0
         else:
-            stagnation_counter += 1  # Increment stagnation counter if no improvement
+            stagnation_counter += 1
 
-        # Keep track of the best route in each generation
         best_routes_per_generation.append(best_route)
 
-        # Stop if there has been no improvement for the defined number of generations
         if stagnation_counter >= max_stagnation:
             break
 
-        # print(f"Generation {generation + 1}: Best fitness = {best_fitness * 100:.5f}")
-
     return best_route, best_fitness, best_routes_per_generation
 
+
+def roulette_wheel_selection(population, fitness_scores):
+    """
+    Perform Roulette Wheel Selection on the population.
+    Args:
+    - population: List of individuals in the population.
+    - fitness_scores: List of fitness scores corresponding to each individual.
+
+    Returns:
+    - Selected individual from the population.
+    """
+    total_fitness = sum(fitness_scores)
+    if total_fitness == 0:
+        return np.random.choice(population)  # Random selection if total fitness is zero
+
+    # Calculate the selection probability for each individual
+    selection_probabilities = [fitness / total_fitness for fitness in fitness_scores]
+
+    # Choose an individual based on the computed probabilities
+    selected_index = np.random.choice(range(len(population)), p=selection_probabilities)
+    return population[selected_index]
+
+
+def rank_selection(population, fitness_scores):
+    """
+    Perform Rank Selection on the population.
+    """
+
+    # Rank individuals by their fitness scores (higher fitness is better)
+    sorted_indices = np.argsort(fitness_scores)  # Sort in ascending order
+    ranked_population = [population[i] for i in sorted_indices]
+
+    # Assign ranks based on their sorted order
+    ranks = np.arange(1, len(population) + 1)  # Rank ranges from 1 to N
+
+    # Calculate selection probability based on rank (higher rank has higher probability)
+    total_rank = sum(ranks)
+    selection_probabilities = [rank / total_rank for rank in ranks]
+
+    # Choose an individual based on the computed rank probabilities
+    selected_index = np.random.choice(range(len(population)), p=selection_probabilities)
+    return ranked_population[selected_index]

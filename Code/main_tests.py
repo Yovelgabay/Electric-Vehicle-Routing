@@ -11,7 +11,7 @@ from Code.functions import (
 )
 
 from Code.visualization import visualize_all_routes, visualize_best_route_animation, visualize_clustering
-from GA import genetic_algorithm, calculate_distances_of_cs, final_fitness_function
+from ga_tests import genetic_algorithm, calculate_distances_of_cs, final_fitness_function
 from kmeans import kmeans_clustering
 from parameters import *
 
@@ -99,8 +99,9 @@ def update_route_data(starting_point_index, route, connections, charging_station
             updated_charging_stations, updated_route_points_distances, values_to_remove)
 
 
-def run_genetic_algorithm_for_each_start_point(route, connections, cluster_labels, assigned_points, charging_stations_matrix,
-                                               queueing_time, route_points_distances):
+def run_genetic_algorithm_for_each_start_point(route, connections, cluster_labels, assigned_points,
+                                               charging_stations_matrix,
+                                               queueing_time, route_points_distances, selection_method):
     """
     Run the genetic algorithm for each starting point on the route and gather the best routes.
     """
@@ -153,7 +154,8 @@ def run_genetic_algorithm_for_each_start_point(route, connections, cluster_label
             segment_distances=updated_route_points_distances,
             max_stagnation=MAX_STAGNATION,
             cluster_labels=cluster_labels,
-            starting_point_cluster=starting_point_cluster
+            starting_point_cluster=starting_point_cluster,
+            selection_method=selection_method
         )
 
         # Deep copy the best charging stations to avoid modifying the original list
@@ -197,80 +199,87 @@ def main():
     # Apply K-means clustering and assign clusters
     cluster_labels, centroids, assigned_points = kmeans_and_assign_clusters(route, charging_stations)
 
-    # Run the genetic algorithm and gather the best routes
-    best_routes, final_chromosome = run_genetic_algorithm_for_each_start_point(
-        route, connections, cluster_labels, assigned_points, charging_stations_matrix, queueing_time, route_points_distances
-    )
+    selection_methods = ['tournament_4', 'tournament_6', 'tournament_8', 'roulette_wheel', 'rank_selection']
+    population_sizes = [200, 500, 1000, 2000]  # Different population sizes to test
+    results = {size: {} for size in population_sizes}
+
+    # Run tests for each population size and selection method
+    for size in population_sizes:
+        global POPULATION_SIZE  # Update the population size globally
+        POPULATION_SIZE = size
+        print(f"Testing with population size: {size}")
+
+        for method in selection_methods:
+            print(f"Running genetic algorithm with {method} selection...")
+            # Run the genetic algorithm and gather the best routes
+            best_routes, final_chromosome = run_genetic_algorithm_for_each_start_point(
+                route, connections, cluster_labels, assigned_points, charging_stations_matrix, queueing_time,
+                route_points_distances, method
+            )
+            results[size][method] = final_fitness_function(
+                final_chromosome, connections, calculate_distances_of_cs(charging_stations_matrix, route),
+                queueing_time, EV_CAPACITY, EV_CAPACITY, route_points_distances
+            )
+
+    # Visualize the results
+    visualize_population_sizes(results, population_sizes, selection_methods)
 
     # End the timer and calculate the elapsed time
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Total execution time: {elapsed_time:.2f} seconds")
 
-    # Calculate fitness score of the final chromosome using the real queueing time (without clustering)
-    if final_chromosome:  # Ensure that final_chromosome is not empty
-        fitness_score = final_fitness_function(
-            final_chromosome, connections, calculate_distances_of_cs(charging_stations_matrix, route),
-            queueing_time, EV_CAPACITY, EV_CAPACITY, route_points_distances
-        )
-        print(f"Best final route: {final_chromosome}")
-        print(f"Final Fitness Score: {fitness_score * 100:.6f}")
 
-    # Visualize all routes
-    visualize_all_routes(best_routes, cluster_labels, centroids, assigned_points)
+def visualize_population_sizes(results, population_sizes, selection_methods):
+    # Create a grouped bar chart for fitness scores across different population sizes and selection methods
+    plt.figure(figsize=(12, 8))
+
+    # X positions for groups of bars
+    x = range(len(selection_methods))
+    width = 0.2  # Width of each bar
+
+    for i, size in enumerate(population_sizes):
+        # Get fitness scores for the current population size
+        fitness_scores = [results[size][method] for method in selection_methods]
+        # Shift positions for each population size
+        plt.bar([pos + i * width for pos in x], fitness_scores, width=width, label=f'Population Size: {size}')
+
+        # Add value labels above each bar
+        for j, score in enumerate(fitness_scores):
+            plt.text(j + i * width, score + 0.01, round(score, 2), ha='center', va='bottom', fontsize=10)
+
+    plt.xlabel('Selection Methods')
+    plt.ylabel('Fitness Scores')
+    plt.title('Fitness Scores for Different Selection Methods Across Population Sizes')
+    plt.xticks([pos + width for pos in x], selection_methods)
+    plt.legend(title='Population Size')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.show()
 
 
-def test_mutation_rates():
-    mutation_rates = np.arange(0, 1.1, 0.1)  # Mutation rates from 0 to 1 with steps of 0.1
-    num_points_list = [5000]  # Different numbers of charging station points
+def visualize_selection_methods(results):
+    # Extract selection methods and their corresponding fitness scores
+    methods = list(results.keys())
+    fitness_scores = list(results.values())
 
-    results = {}
+    # Create a bar chart
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(methods, fitness_scores, color='skyblue')
+    # Add value labels above each bar
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, yval + 0.01, round(yval, 2), ha='center', va='bottom', fontsize=10)
+    plt.xlabel('Selection Methods')
+    plt.ylabel('Fitness Scores')
+    plt.title('Fitness Scores of Different Selection Methods')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
 
-    for num_points in num_points_list:
-        results[num_points] = []
-        for mutation_rate in mutation_rates:
-            print(f"Testing with {num_points} charging stations and mutation rate {mutation_rate:.1f}")
-            # Update NUM_POINTS and MUTATION_RATE
-            global NUM_POINTS, MUTATION_RATE
-            NUM_POINTS = num_points
-            MUTATION_RATE = mutation_rate
+    # Display the fitness score values on the bars
+    for i, score in enumerate(fitness_scores):
+        plt.text(i, score + 1, str(score), ha='center', va='bottom')
 
-            # Generate initial data
-            route, charging_stations_matrix, queueing_time, route_points_distances, charging_stations = generate_initial_data()
-
-            # Get connections
-            connections = get_connections(route, charging_stations)
-
-            # Apply K-means clustering and assign clusters
-            cluster_labels, centroids, assigned_points = kmeans_and_assign_clusters(route, charging_stations)
-
-            # Run the genetic algorithm and gather the best routes
-            best_routes, final_chromosome = run_genetic_algorithm_for_each_start_point(
-                route, connections, cluster_labels, assigned_points, charging_stations_matrix, queueing_time,
-                route_points_distances
-            )
-
-            # Calculate fitness score of the final chromosome using the real queueing time (without clustering)
-            if final_chromosome:
-                fitness_score = final_fitness_function(
-                    final_chromosome, connections, calculate_distances_of_cs(charging_stations_matrix, route),
-                    queueing_time, EV_CAPACITY, EV_CAPACITY, route_points_distances
-                )
-                results[num_points].append(fitness_score * 100)
-            else:
-                results[num_points].append(None)
-
-    # Plotting results
-    for num_points, scores in results.items():
-        plt.plot(mutation_rates, scores, label=f'Charging Stations: {num_points}')
-
-    plt.xlabel('Mutation Rate')
-    plt.ylabel('Fitness Score (%)')
-    plt.title('Effect of Mutation Rate on Genetic Algorithm Performance')
-    plt.legend()
-    plt.grid(True)
     plt.show()
 
 
 if __name__ == "__main__":
-    test_mutation_rates()
+    main()
