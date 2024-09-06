@@ -149,9 +149,15 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
             if idx in best_charging_stations:
                 continue  # Skip already selected stations
 
-            # Set the color based on queueing time
-            color = cmap(norm(queueing_time[idx]))
-            ax.scatter(x, y, color=color, alpha=0.5, label='All Charging Stations' if idx == 0 else "")
+            if subset_cluster_labels[idx] == starting_point_cluster:
+                # Set color based on the actual queueing time for stations in the current cluster
+                color = cmap(norm(queueing_time[idx]))
+            else:
+                # Use the average queueing time for stations not in the current cluster
+                color = cmap(norm(AVERAGE_QUEUEING_TIME))
+
+                # Plot the charging station
+            ax.scatter(x, y, color=color, alpha=0.7)
             ax.text(x, y, f'{idx + points_to_add}', fontsize=8, color='gray')
 
     # Highlight the chosen charging stations
@@ -162,7 +168,11 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
 
     # Plot the charging station logo with corresponding penalty color
     for i, (x, y) in enumerate(chosen_charging_stations):
-        color = to_rgba(cmap(norm(chosen_queueing_time[i])))  # Get the RGBA color
+        if subset_cluster_labels[
+            best_charging_stations[i]] == starting_point_cluster:  # Check if the station is in the current cluster
+            color = to_rgba(cmap(norm(chosen_queueing_time[i])))  # Get the RGBA color for current queueing time
+        else:
+            color = to_rgba(cmap(norm(AVERAGE_QUEUEING_TIME))) # Use the fixed color for stations not in the current cluster
 
         colored_logo = charging_station_logo[:, :, :3].copy()  # Get the RGB channels
         alpha_channel = charging_station_logo[:, :, 3]  # Get the alpha channel
