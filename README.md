@@ -1,98 +1,86 @@
-# Enhancing Electric Vehicle Routing Efficiency Through K-Means Clustering and Genetic Algorithm Optimization
 
----
+# Electric Vehicle Routing Optimization
 
-## Introduction
+This project aims to optimize electric vehicle (EV) routes using K-Means clustering and a Genetic Algorithm (GA). It addresses the real-world challenge of determining the most efficient route for an EV from point A to point B, considering stops at charging stations while accounting for dynamic factors such as queuing delays and travel distance.
 
-This project focuses on optimizing electric vehicle (EV) routing by combining K-means clustering and a genetic algorithm. The goal is to enhance routing efficiency by dynamically evaluating routes and incorporating real-time data.
+## Project Overview
 
----
+The system dynamically generates routes for electric vehicles, incorporating real-world charging constraints such as battery capacity, travel distance, and queuing times at charging stations. The project uses a two-phase approach:
 
-## Clustering
+1. **K-Means Clustering**: Partition charging stations based on geographical proximity, allowing for more manageable routing based on the current cluster of the EV.
+2. **Genetic Algorithm Optimization**: The system dynamically optimizes the total travel distance and stops by running a genetic algorithm that selects the best charging stations based on distance and waiting times.
 
-Initially, we aimed to simplify the problem by clustering charging stations. Each route point was assigned to the nearest cluster of charging stations, with the genetic algorithm evaluating optimal stops. Charging stations within the same cluster as the current route point were assumed to have real queueing times, while those outside the cluster had average waiting times. This method enhances model realism by using actual data when route points are close to charging stations.
+## Features
 
-We originally planned to determine the optimal number of clusters K using the silhouette score. However, we found that clustering did not significantly reduce complexity and that the silhouette score suggested too few clusters. Therefore, we adjusted K to be the number of route points divided by 3, which demonstrated the dynamic features of our system while maintaining manageable complexity.
+- **Dynamic Route Optimization**: The route is recalculated dynamically based on the EV's current location, remaining battery, and real-time updates at each step.
+- **Flexible Algorithm**: Users can select different combinations of crossover, mutation, and selection methods within the Genetic Algorithm, allowing for experimentation with various optimization techniques.
+- **Realistic Charging Constraints**: The system integrates queuing times at charging stations, creating more realistic scenarios for EV routing.
+- **Visualization**: The system provides visualizations of routes, charging stations, and dynamically evolving solutions through graphs and animations.
 
----
+## Getting Started
 
-## Route Representation
+### Prerequisites
 
-The route is represented as a sequence of points with (x, y) coordinates. These points include a starting point, several checkpoints, and an ending point. The points act as exit points to the charging stations, allowing vehicles to leave the main route to access charging stations and then return.
+- **Python 3.7 or later**
+- **Required Python Packages**:
+  - numpy
+  - matplotlib
+  - scikit-learn
 
----
+### Installation
 
-## Charging Stations
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Yovelgabay/Electric-Vehicle-Routing.git
+   ```
+2. Navigate to the project directory:
+   ```bash
+   cd Electric-Vehicle-Routing
+   ```
+3. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Charging stations are represented as random points with associated queuing time penalties ranging from 0 to 20 minutes. We calculate the Euclidean distance between each station and every route point to determine the closest route point, which serves as the exit point to the station. This mapping ensures:
+### Running the Project
 
-1. A charging station can only be accessed via its corresponding route point.
-2. Each route point can lead to multiple charging stations, which are sorted based on proximity for the genetic algorithm.
+To run the main optimization script:
 
----
+```bash
+python main.py
+```
 
-## Genetic Algorithm for Routing Problem
+### Customizing Parameters
 
-### Overview
+The system allows users to adjust the parameters in `parameters.py` to suit various routing scenarios. Here are a few key parameters you can customize:
 
-The genetic algorithm (GA) is used to generate high-quality solutions for optimization problems. It starts with an initial population of chromosomes and evolves through selection, crossover, and mutation to find optimal routes.
+- `EV_CAPACITY`: The total battery capacity of the EV.
+- `NUM_ROUTE_POINTS`: The number of route points along the EV's journey.
+- `POPULATION_SIZE`: The number of candidate solutions (routes) used in the Genetic Algorithm.
+- `GENERATIONS`: The number of generations for which the GA evolves the population.
+- `MUTATION_RATE`: The probability of mutation during the GA process.
+- `NUM_POINTS`: The number of charging stations available along the route.
+- `CHECK_POINTS`: The list of predefined route checkpoints the EV must pass through.
 
-### Genetic Representation
+### Visualizations
 
-Each chromosome represents a potential solution, consisting of sequences of positive integers where each integer is the ID of a charging station. Chromosomes vary in length, allowing the algorithm to explore different routing paths.
+The system provides visualizations of the optimal routes and the charging station points. Dynamic animations of the best route as it evolves over time are also available.
 
-### Crossover
+## Maintenance and Flexibility
 
-Crossover combines genetic information from two parent chromosomes to produce offspring:
+This project is built to be flexible and maintainable. You can easily switch between different crossover, mutation, and selection methods by modifying the relevant functions in the `GA.py` file. To add new methods or customize the existing ones:
 
-- **Crossover with Common Nodes:** When parents share common nodes, crossover occurs at a random common node, swapping segments between parents.
-- **Crossover with No Common Nodes:** Crossover occurs at a midpoint, combining segments from both parents to create offspring.
+1. Create a new function in the appropriate file (e.g., GA.py for the genetic algorithm).
+2. Modify the main genetic algorithm loop to call the new method.
 
-Offspring are sorted to ensure valid routes.
+## Contributing
 
-### Mutation
+Feel free to submit issues or pull requests to improve the project. Contributions to enhance the algorithm, introduce new features, or fix bugs are always welcome.
 
-Mutation introduces genetic diversity by making random changes to chromosomes. The mutation process includes:
+## License
 
-1. **Random Locus Selection:** Select a random position in the chromosome.
-2. **Determine Valid Range:** Ensure the new gene is within a valid range to maintain route feasibility.
-3. **Replace Gene:** Replace the old gene with a new one within the valid range.
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-Mutation includes:
-- Replacing a single station
-- Adding a new station
-- Removing a single station
+## Acknowledgments
 
-### Population Initialization
-
-The initial population is generated randomly, including:
-1. Shortest Valid Path
-2. Longest Path
-3. Random Paths
-
-This diversity is essential for effective exploration of solutions.
-
-### Fitness Function
-
-The fitness function evaluates how well a route minimizes distance and waiting time while adhering to EV capacity constraints. It calculates penalties for invalid routes, total distance, and waiting times, ensuring efficient routing.
-
-### Selection
-
-**Tournament Selection** is used to choose parents for crossover. A subset of chromosomes is randomly selected, and the one with the highest fitness is chosen as a parent.
-
-### Stagnation
-
-Stagnation indicates minimal improvement over generations. The algorithm terminates if no significant improvement is observed for a set number of generations.
-
-### Dynamic Process
-
-The algorithm dynamically updates the route based on the EV’s current position, recalculating the optimal route and updating charging station information accordingly.
-
----
-
-## Research Process
-
-We evaluated various algorithms for:
-- Selection operator
-- Crossover opreater
-- Mutation operator
+This project was supervised by Prof. Miri Weiss-Cohen and developed as part of the Capstone Project at ORT Braude College.

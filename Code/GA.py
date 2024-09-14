@@ -5,27 +5,6 @@ import copy
 from Code.parameters import AVERAGE_QUEUEING_TIME
 
 
-def calculate_distances_of_cs2(points_with_ids, route):
-    """
-    Calculate the minimum distance from each charging station to the nearest route point.
-    """
-
-    num_points = len(points_with_ids)
-    num_route_points = len(route)
-    min_distances = np.zeros(num_points)
-
-    # Iterate over each charging station
-    for i, (_, (px, py), _) in enumerate(points_with_ids):
-        distances = np.zeros(num_route_points)
-        # Calculate distance from the charging station to each point on the route
-        for j, (qx, qy) in enumerate(route):
-            distances[j] = np.hypot(px - qx, py - qy)
-        # Find the minimum distance to the nearest route point
-        min_distances[i] = distances.min()
-
-    return min_distances
-
-
 def calculate_distances_of_cs(points_with_ids, route):
     """
     Calculate the minimum distance from each charging station to the nearest route point.
@@ -358,8 +337,8 @@ def genetic_algorithm(charging_station_points, route_points, connections, initia
     # Initialize the population with random routes
     population = initialize_population(charging_station_points, population_size)
     # If there are charging stations to add, include them in the initial population
-    if len(initial_population_addition) != 0:
-        population.append(initial_population_addition)
+    # if len(initial_population_addition) != 0:
+    #     population.append(initial_population_addition)
 
     # Evaluate the initial population's fitness
     evaluated_population, fitness_scores = evaluate_population(population, connections, charging_station_distances,
@@ -373,7 +352,7 @@ def genetic_algorithm(charging_station_points, route_points, connections, initia
 
     stagnation_counter = 0  # Counter to track the number of generations without improvement
     for generation in range(num_generations):
-        next_population = []  # Start the next generation with the current best route
+        next_population = [best_route]  # Start the next generation with the current best route
 
         # Generate new offspring using selection, crossover, and mutation
         for _ in range(population_size // 4):

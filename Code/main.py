@@ -1,5 +1,6 @@
 import copy
 import math
+import os
 import time
 from Code.functions import (
     assign_route_points_to_centroids, generate_route_with_checkpoints,
@@ -11,6 +12,8 @@ from Code.visualization import visualize_all_routes, visualize_best_route_animat
 from GA import genetic_algorithm, calculate_distances_of_cs, final_fitness_function
 from kmeans import kmeans_clustering
 from parameters import *
+
+os.environ['LOKY_MAX_CPU_COUNT'] = '4'
 
 
 def generate_initial_data():
@@ -56,9 +59,11 @@ def kmeans_and_assign_clusters(route, charging_stations):
     Apply K-means clustering to charging stations and assign route points to clusters.
     """
 
-    """ Perform K-means clustering on the charging stations
-        Number of clusters is chosen as the ceiling of one-third the length of the route,
-        which provides a reasonable number of clusters for effective clustering in the algorithm """
+    """ 
+    Perform K-means clustering on the charging stations.
+    The number of clusters is chosen as the ceiling of one-third the length of the route,
+    which provides a reasonable number of clusters for effective clustering in the algorithm
+    """
     cluster_labels, centroids, num_clusters = kmeans_clustering(charging_stations, math.ceil(len(route) / 3))
 
     # Assign each route point to the nearest centroid
@@ -111,7 +116,6 @@ def run_genetic_algorithm_for_each_start_point(route, connections, cluster_label
 
     # Iterate over each point on the route as a potential starting point
     for current_start_index in range(len(route)):
-        # print(f"Starting Point Index: {current_start_index}")
 
         # Update the route and relevant data based on the current starting point
         updated_route, updated_connections, updated_charging_stations_matrix, updated_queueing_time, \
@@ -127,7 +131,6 @@ def run_genetic_algorithm_for_each_start_point(route, connections, cluster_label
         # Deduct the distance of the segment from the initial EV capacity
         if current_start_index > 0:
             initial_ev_capacity -= route_points_distances[current_start_index - 1]
-            # print("initial_ev_capacity", initial_ev_capacity)
 
         # Calculate the number of stations to remove at this step and adjust the population
         current_removed_count = copy.deepcopy(removed_count_this_step) - copy.deepcopy(prev_removed_count)

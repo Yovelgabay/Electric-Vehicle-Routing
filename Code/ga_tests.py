@@ -200,7 +200,7 @@ def tournament_selection(population, fitness_scores, tournament_size):
     return selected_parent
 
 
-def crossover(parent1, parent2):
+def variant_crossover(parent1, parent2):
     """
     Apply crossover operation to two parent chromosomes (routes) to generate two offspring chromosomes.
     """
@@ -232,7 +232,7 @@ def crossover(parent1, parent2):
     return offspring1_route, offspring2_route
 
 
-def mutate(route, points_with_ids, mutation_rate):
+def variant_mutate(route, points_with_ids, mutation_rate):
     """
     Introduce variations into the route by randomly mutating it based on a mutation rate.
     """
@@ -283,26 +283,58 @@ def mutate(route, points_with_ids, mutation_rate):
     return route1, route2
 
 
-def initialize_population(points_with_ids, population_size):
+def random_resetting_mutation(chromosome):
+
+    if len(chromosome) == 0:
+        # If the chromosome is empty, return it unchanged
+        return chromosome.copy(), chromosome.copy()
+
+    mutated_child1 = chromosome.copy()
+    mutated_child2 = chromosome.copy()
+
+    # Mutation for child 1
+    pos1 = random.randint(0, len(mutated_child1) - 1)
+    mutated_child1[pos1] = 1 - mutated_child1[pos1]  # random resetting at the selected position
+
+    # Mutation for child 2
+    pos2 = random.randint(0, len(mutated_child2) - 1)
+    mutated_child2[pos2] = 1 - mutated_child2[pos2]  # random resetting at the selected position
+
+    # Sort the mutated chromosomes before returning
+    mutated_child1.sort()
+    mutated_child2.sort()
+
+    return mutated_child1, mutated_child2
+
+
+def initialize_population(points_with_ids, population_size, include_extreme_chromosomes=True):
     """
     Generate the initial population for a genetic algorithm. Each individual in the population represents a route
     through the charging stations.
+
+    Parameters:
+    - points_with_ids: List of charging station points with IDs.
+    - population_size: Total number of chromosomes to generate.
+    - include_extreme_chromosomes: Boolean flag to include shortest and longest path chromosomes.
     """
 
     population = []
     num_points = len(points_with_ids)
 
-    # Add a chromosome with a single randomly chosen charging station (shortest valid path)
-    if num_points > 0:
-        shortest_path_chromosome = [random.choice(range(num_points))]
-        population.append(shortest_path_chromosome)
+    # Include shortest and longest path chromosomes if specified
+    if include_extreme_chromosomes:
+        if num_points > 0:
+            # Shortest path chromosome (single random charging station)
+            shortest_path_chromosome = [random.choice(range(num_points))]
+            population.append(shortest_path_chromosome)
 
-    # Add a chromosome with a path covering all charging stations (longest path)
-    longest_path_chromosome = list(range(num_points))
-    population.append(longest_path_chromosome)
+        # Longest path chromosome (all charging stations)
+        longest_path_chromosome = list(range(num_points))
+        population.append(longest_path_chromosome)
 
-    # Add random chromosomes with varying numbers of stops
-    for i in range(population_size - 2):
+    # Generate the rest of the random chromosomes
+    num_chromosomes_to_generate = population_size - len(population)
+    for _ in range(num_chromosomes_to_generate):
         num_stops = random.randint(1, num_points)  # Number of stops varies randomly
         random_chromosome = sorted(random.sample(range(num_points), num_stops))
         population.append(random_chromosome)
@@ -337,7 +369,8 @@ def evaluate_population(population, connections, distances_CS, queueing_time, ev
 def genetic_algorithm(charging_station_points, route_points, connections, initial_population_addition,
                       population_size, num_generations, mutation_rate, queueing_time, ev_capacity,
                       initial_ev_capacity, segment_distances, max_stagnation, cluster_labels,
-                      starting_point_cluster, selection_method):
+                      starting_point_cluster, selection_method,
+                      mutation_method, crossover_method, include_best_route, add_to_initial):
     """
     Execute the genetic algorithm to find the optimal route based on given parameters.
     """
@@ -347,9 +380,9 @@ def genetic_algorithm(charging_station_points, route_points, connections, initia
         return [], 1, []
 
     charging_station_distances = calculate_distances_of_cs(charging_station_points, route_points)
-    population = initialize_population(charging_station_points, population_size)
+    population = initialize_population(charging_station_points, population_size, include_extreme_chromosomes=True)
 
-    if len(initial_population_addition) != 0:
+    if len(initial_population_addition) != 0 and add_to_initial:
         population.append(initial_population_addition)
 
     evaluated_population, fitness_scores = evaluate_population(
@@ -363,7 +396,10 @@ def genetic_algorithm(charging_station_points, route_points, connections, initia
     stagnation_counter = 0
 
     for generation in range(num_generations):
-        next_population = []  # Preserve the best route
+        if include_best_route:
+            next_population = [best_route]  # Preserve the best route
+        else:
+            next_population = []
 
         # Generate new offspring
         for _ in range(population_size // 4):
@@ -386,9 +422,19 @@ def genetic_algorithm(charging_station_points, route_points, connections, initia
             else:
                 raise ValueError("Invalid selection method specified.")
 
-            child1, child2 = crossover(parent1, parent2)
-            mutated_child1a, mutated_child1b = mutate(child1, charging_station_points, mutation_rate)
-            mutated_child2a, mutated_child2b = mutate(child2, charging_station_points, mutation_rate)
+            if crossover_method == 'variant':
+                child1, child2 = variant_crossover(parent1, parent2)
+            elif crossover_method == 'double_point':
+                child1, child2 = double_point_crossover(parent1, parent2)
+            elif crossover_method == 'uniform':
+                child1, child2 = uniform_crossover(parent1, parent2)
+
+            if mutation_method == 'random_resetting':
+                mutated_child1a, mutated_child1b = random_resetting_mutation(child1)
+                mutated_child2a, mutated_child2b = random_resetting_mutation(child2)
+            elif mutation_method == 'variant':
+                mutated_child1a, mutated_child1b = variant_mutate(child1, charging_station_points, mutation_rate)
+                mutated_child2a, mutated_child2b = variant_mutate(child2, charging_station_points, mutation_rate)
 
             next_population.extend([mutated_child1a, mutated_child1b, mutated_child2a, mutated_child2b])
 
@@ -454,3 +500,57 @@ def rank_selection(population, fitness_scores):
     # Choose an individual based on the computed rank probabilities
     selected_index = np.random.choice(range(len(population)), p=selection_probabilities)
     return ranked_population[selected_index]
+
+
+def double_point_crossover(parent1, parent2):
+    """
+    Performs double-point crossover on two parent chromosomes.
+
+    Args:
+        parent1 (list): The first parent chromosome.
+        parent2 (list): The second parent chromosome.
+
+    Returns:
+        tuple: A tuple containing the two offspring chromosomes.
+    """
+
+    crossover_point1 = random.randint(1, len(parent1) - 2)
+    crossover_point2 = random.randint(crossover_point1 + 1, len(parent1) - 1)
+
+    offspring1 = parent1[:crossover_point1] + parent2[crossover_point1:crossover_point2] + parent1[crossover_point2:]
+    offspring2 = parent2[:crossover_point1] + parent1[crossover_point1:crossover_point2] + parent2[crossover_point2:]
+
+    offspring1 = sorted(offspring1)
+    offspring2 = sorted(offspring2)
+
+    return offspring1, offspring2
+
+
+def uniform_crossover(parent1, parent2, crossover_probability=0.5):
+    """
+    Performs uniform crossover on two parent chromosomes.
+
+    Args:
+        parent1 (list): The first parent chromosome.
+        parent2 (list): The second parent chromosome.
+        crossover_probability (float): The probability of a gene being exchanged.
+
+    Returns:
+        tuple: A tuple containing the two offspring chromosomes.
+    """
+
+    offspring1 = []
+    offspring2 = []
+
+    for gene1, gene2 in zip(parent1, parent2):
+        if random.random() < crossover_probability:
+            offspring1.append(gene2)
+            offspring2.append(gene1)
+        else:
+            offspring1.append(gene1)
+            offspring2.append(gene2)
+
+    offspring1 = sorted(offspring1)
+    offspring2 = sorted(offspring2)
+
+    return offspring1, offspring2
