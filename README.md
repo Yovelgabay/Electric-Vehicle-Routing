@@ -66,12 +66,6 @@ The system allows users to adjust the parameters in `parameters.py` to suit vari
 
 The system provides visualizations of the optimal routes and the charging station points. Dynamic animations of the best route as it evolves over time are also available.
 
-## Maintenance and Flexibility
-
-This project is built to be flexible and maintainable. You can easily switch between different crossover, mutation, and selection methods by modifying the relevant functions in the `GA.py` file. To add new methods or customize the existing ones:
-
-1. Create a new function in the appropriate file (e.g., GA.py for the genetic algorithm).
-2. Modify the main genetic algorithm loop to call the new method.
 
 ## Contributing
 
