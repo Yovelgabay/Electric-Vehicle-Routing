@@ -101,7 +101,8 @@ def update_route_data(starting_point_index, route, connections, charging_station
             updated_charging_stations, updated_route_points_distances, values_to_remove)
 
 
-def run_genetic_algorithm_for_each_start_point(route, connections, cluster_labels, assigned_points, charging_stations_matrix,
+def run_genetic_algorithm_for_each_start_point(route, connections, cluster_labels, assigned_points,
+                                               charging_stations_matrix,
                                                queueing_time, route_points_distances):
     """
     Run the genetic algorithm for each starting point on the route and gather the best routes.
@@ -199,7 +200,8 @@ def main():
 
     # Run the genetic algorithm and gather the best routes
     best_routes, final_chromosome = run_genetic_algorithm_for_each_start_point(
-        route, connections, cluster_labels, assigned_points, charging_stations_matrix, queueing_time, route_points_distances
+        route, connections, cluster_labels, assigned_points, charging_stations_matrix, queueing_time,
+        route_points_distances
     )
 
     # End the timer and calculate the elapsed time
@@ -220,5 +222,33 @@ def main():
     visualize_all_routes(best_routes, cluster_labels, centroids, assigned_points, final_chromosome)
 
 
+def run_animation():
+    # Generate initial data
+    route, charging_stations_matrix, queueing_time, route_points_distances, charging_stations = generate_initial_data()
+
+    # Get connections
+    connections = get_connections(route, charging_stations)
+    # Apply K-means clustering and assign clusters
+    cluster_labels, centroids, assigned_points = kmeans_and_assign_clusters(route, charging_stations)
+    best_charging_stations, _, best_routes_per_generation = genetic_algorithm(
+        charging_station_points=charging_stations_matrix,
+        route_points=route,
+        connections=connections,
+        initial_population_addition=[],
+        population_size=POPULATION_SIZE,
+        num_generations=GENERATIONS,
+        mutation_rate=MUTATION_RATE,
+        queueing_time=queueing_time,
+        ev_capacity=EV_CAPACITY,
+        initial_ev_capacity=EV_CAPACITY,
+        segment_distances=route_points_distances,
+        max_stagnation=MAX_STAGNATION,
+        cluster_labels=cluster_labels,
+        starting_point_cluster=0
+    )
+    visualize_best_route_animation(route, charging_stations, best_routes_per_generation, connections,
+                                   route_points_distances, queueing_time, interval=500)
+
+
 if __name__ == "__main__":
-    main()
+    run_animation()

@@ -15,20 +15,15 @@ from Code.parameters import EV_CAPACITY, POPULATION_SIZE, GENERATIONS, MUTATION_
 def closest_point(route, charging_station):
     """
     Finds the closest point on the route to the given point.
-
-    Parameters:
-    - route (np.ndarray): Array of (x, y) coordinates defining the route.
-    - point (np.ndarray): Coordinates of the point to find the closest route point for.
-
-    Returns:
-    - int: Index of the closest point on the route.
     """
     distances = cdist([charging_station], route, 'euclidean')
     return np.argmin(distances)
 
 
 def visualize_clustering(num_clusters, charging_stations, cluster_labels, centroids):
-    # Visualize the clustered charging_stations
+    """
+    Visualize the clustered charging_stations
+    """
     plt.figure(figsize=(8, 6))
     cmap = plt.cm.get_cmap('tab10')
 
@@ -50,19 +45,11 @@ def update_plot(ax, route, charging_stations, best_charging_stations, connection
                 queueing_time, generation):
     """
     Update the plot with the best route and charging stations at each generation.
-
-    Parameters:
-    - ax: Matplotlib axis object.
-    - route: Array of (x, y) coordinates defining the route.
-    - charging_stations: Array of (x, y) coordinates of the charging_stations
-    - best_charging_stations: List of indices representing the best charging stations.
-    - connections: List of tuples defining connections between charging_stations and route segments.
-    - route_points_distances: List of distances between consecutive route points.
-    - queueing_time: Array of penalty values for each charging station.
-    - generation: Current generation number for display.
     """
     ax.clear()
-    ax.plot(route[:, 0], route[:, 1], 'r-o', label='Route')
+
+    # Plot the route as a thin dashed line
+    ax.plot(route[:, 0], route[:, 1], color='green', linestyle='--', linewidth=1, alpha=0.8, label='Route')
 
     # Define custom colormap ranging from green to red
     cmap = plt.cm.get_cmap('RdYlGn_r')  # Reversed RdYlGn colormap
@@ -74,33 +61,50 @@ def update_plot(ax, route, charging_stations, best_charging_stations, connection
     chosen_charging_stations = charging_stations[best_charging_stations]
     chosen_queueing_time = queueing_time[best_charging_stations]
 
-    # Scatter chosen charging_stations with color based on queueing_time
-    sc = ax.scatter(chosen_charging_stations[:, 0], chosen_charging_stations[:, 1], c=cmap(norm(chosen_queueing_time)),
-                    s=100, zorder=5,
-                    label='Chosen Charging Stations')
+    charging_station_logo = mpimg.imread('Code/assets/cs.png')
 
+    # Plot the charging station logo with corresponding penalty color
     for i, (x, y) in enumerate(chosen_charging_stations):
-        ax.text(x + 0.5, y + 0.5, f'{best_charging_stations[i]}', fontsize=12, color='gold')
+        color = to_rgba(cmap(norm(chosen_queueing_time[i])))  # Get the RGBA color for current queueing time
 
+        colored_logo = charging_station_logo[:, :, :3].copy()  # Get the RGB channels
+        alpha_channel = charging_station_logo[:, :, 3]  # Get the alpha channel
+
+        for c in range(3):  # Adjust each color channel based on the colormap color
+            colored_logo[:, :, c] = np.where(alpha_channel > 0, color[c], colored_logo[:, :, c])
+
+        final_logo = np.dstack((colored_logo, alpha_channel))
+
+        imagebox = OffsetImage(final_logo, zoom=0.075, alpha=1)
+        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
+        ax.add_artist(ab)
+
+        # Modify the color and add padding to the text
+        text_padding_x = -3.0  # Adjust this value to move the text horizontally
+        text_padding_y = 2.0  # Adjust this value to move the text vertically
+        ax.text(x + text_padding_x, y + text_padding_y, f'{best_charging_stations[i]}', fontsize=10, color='blue',
+                fontweight='bold', bbox=dict(facecolor='white', alpha=0.6, boxstyle='round,pad=0.3'))
+
+    # Plot connections only to the chosen stations
     chosen_connections = [(idx, closest_point(route, charging_stations[idx])) for idx in best_charging_stations]
     for start, end in chosen_connections:
-        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]], 'r-',
-                linewidth=2)
+        ax.plot([route[end][0], charging_stations[start][0]], [route[end][1], charging_stations[start][1]],
+                color='#FF5962', linewidth=2)
         mid_x = (route[end][0] + charging_stations[start][0]) / 2
         mid_y = (route[end][1] + charging_stations[start][1]) / 2
         segment_length = np.linalg.norm(route[end] - charging_stations[start])
-        ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='pink')
+        ax.text(mid_x, mid_y, f'{segment_length:.2f}', fontsize=10, color='#221BDC')
 
+    # Plot the entire route and annotate all segment lengths
     ax.scatter(route[:, 0], route[:, 1], color='black', alpha=0.5, label='Route Waypoints')
-    ax.plot(route[:, 0], route[:, 1], 'green', linestyle='dashed', alpha=0.5)
 
     for i in range(len(route) - 1):
         mid_x = (route[i, 0] + route[i + 1, 0]) / 2
         mid_y = (route[i, 1] + route[i + 1, 1]) / 2
         ax.text(mid_x, mid_y, f'{route_points_distances[i]:.2f}', fontsize=10, color='black')
 
-    # Add generation number text at the top middle
-    ax.text(0.5, 0.95, f'Generation: {generation}', transform=ax.transAxes, fontsize=14,
+    # Adjust generation text
+    ax.text(0.75, 0.95, f'Generation: {generation}', transform=ax.transAxes, fontsize=14,
             horizontalalignment='center', verticalalignment='top', bbox=dict(facecolor='white', alpha=0.5))
 
     ax.set_xlim(-2, 102)
@@ -110,16 +114,6 @@ def update_plot(ax, route, charging_stations, best_charging_stations, connection
     ax.set_xlabel('X Coordinate')
     ax.set_ylabel('Y Coordinate')
     ax.grid(True)
-    ax.legend()
-
-    # Add a color bar to indicate penalty values
-    if not hasattr(ax, 'cbar') or ax.cbar is None:
-        sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-        sm.set_array([])
-        ax.cbar = plt.colorbar(sm, ax=ax)
-        ax.cbar.set_label('Waiting time at CS')
-    else:
-        ax.cbar.update_normal(cm.ScalarMappable(norm=norm, cmap=cmap))
 
 
 def visualize_best_route_animation(route, charging_stations, generations_data, connections, route_points_distances,
@@ -172,7 +166,7 @@ def update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations
             best_charging_stations[i]] == starting_point_cluster:  # Check if the station is in the current cluster
             color = to_rgba(cmap(norm(chosen_queueing_time[i])))  # Get the RGBA color for current queueing time
         else:
-            color = to_rgba(cmap(norm(AVERAGE_QUEUEING_TIME))) # Use the fixed color for stations not in the current cluster
+            color = to_rgba(cmap(norm(AVERAGE_QUEUEING_TIME)))  # Use the fixed color for stations not in the current cluster
 
         colored_logo = charging_station_logo[:, :, :3].copy()  # Get the RGB channels
         alpha_channel = charging_station_logo[:, :, 3]  # Get the alpha channel
@@ -302,7 +296,7 @@ def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_
         starting_point_cluster = starting_point_clusters[current_index]
         update_plot_for_dynamic(ax, route, charging_stations, best_charging_stations,
                                 connections, queueing_time, distances, current_index, points_to_add,
-                                subset_cluster_labels, subset_centroids, starting_point_cluster,final_chromosome,
+                                subset_cluster_labels, subset_centroids, starting_point_cluster, final_chromosome,
                                 show_all_points=show_all_points)
         plt.draw()
 
@@ -330,3 +324,4 @@ def visualize_all_routes(best_routes, cluster_labels, centroids, starting_point_
     button_toggle.on_clicked(toggle_display)
 
     plt.show()
+
