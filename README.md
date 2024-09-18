@@ -11,14 +11,17 @@ The system dynamically generates routes for electric vehicles, incorporating rea
 2. **Genetic Algorithm Optimization**: The system dynamically optimizes the total travel distance and stops by running a genetic algorithm that selects the best charging stations based on distance and waiting times.
 3. 
 ## Video Demos
-
 ### Route Optimization Through Generations
-[![Route Optimization](video1.png)](https://www.youtube.com/watch?v=SX3s_VWkWB8)
+<a href="https://www.youtube.com/watch?v=SX3s_VWkWB8">
+    <img src="video1.png" alt="Route Optimization" width="300" />
+</a>
 
 In this video, we demonstrate how the genetic algorithm optimizes the route over several generations, adjusting for both travel distance and charging station queuing times.
 
 ### Visualization Video of a Dynamic Route
-[![Dynamic Route Visualization](video2.png)](https://www.youtube.com/watch?v=P0e9Eubwogc)
+<a href="https://www.youtube.com/watch?v=P0e9Eubwogc">
+    <img src="video2.png" alt="Dynamic Route Visualization" width="300" />
+</a>
 
 This video shows how the selection of charging stations changes based on updated waiting times. You can observe the dynamic adjustments in station selection as the waiting times at each station are updated.
 ## Features
