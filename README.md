@@ -13,12 +13,14 @@ The system dynamically generates routes for electric vehicles, incorporating rea
 ## Video Demos
 
 ### Route Optimization Through Generations
-[![Route Optimization](https://img.youtube.com/vi/SX3s_VWkWB8/0.jpg)](https://www.youtube.com/watch?v=SX3s_VWkWB8)
+[![Route Optimization](![video1](https://github.com/user-attachments/assets/e5d6fbe3-d36f-4ec8-b774-6b43863de1a5)
+)](https://www.youtube.com/watch?v=SX3s_VWkWB8)
 
 In this video, we demonstrate how the genetic algorithm optimizes the route over several generations, adjusting for both travel distance and charging station queuing times.
 
 ### Visualization Video of a Dynamic Route
-[![Dynamic Route Visualization](https://img.youtube.com/vi/P0e9Eubwogc/0.jpg)](https://www.youtube.com/watch?v=P0e9Eubwogc)
+[![Dynamic Route Visualization](![video2](https://github.com/user-attachments/assets/255633ac-b9e1-4973-bf20-2f4c295c4a7f)
+)](https://www.youtube.com/watch?v=P0e9Eubwogc)
 
 This video shows how the selection of charging stations changes based on updated waiting times. You can observe the dynamic adjustments in station selection as the waiting times at each station are updated.
 ## Features
