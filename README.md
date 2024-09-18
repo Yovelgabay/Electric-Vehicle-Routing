@@ -9,7 +9,13 @@ The system dynamically generates routes for electric vehicles, incorporating rea
 
 1. **K-Means Clustering**: Partition charging stations based on geographical proximity, allowing for more manageable routing based on the current cluster of the EV.
 2. **Genetic Algorithm Optimization**: The system dynamically optimizes the total travel distance and stops by running a genetic algorithm that selects the best charging stations based on distance and waiting times.
+3. 
+## Video Demos
 
+### Route Optimization Through Generations
+[![Route Optimization](https://img.youtube.com/vi/SX3s_VWkWB8/0.jpg)](https://www.youtube.com/watch?v=SX3s_VWkWB8)
+
+In this video, we demonstrate how the genetic algorithm optimizes the route over several generations, adjusting for both travel distance and charging station queuing times.
 ## Features
 
 - **Dynamic Route Optimization**: The route is recalculated dynamically based on the EV's current location, remaining battery, and real-time updates at each step.
